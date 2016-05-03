@@ -1,0 +1,54 @@
+//syntax = "proto3";  // Remove every optional when switching to proto3
+
+package masmusic;
+
+// option cc_enable_arenas = true;  // protoc v3 only
+option java_generate_equals_and_hash = true;
+option java_multiple_files = true;
+option java_outer_classname = "MasMusicProto";
+option java_package = "uk.ac.bath.masmusic";
+
+enum Note
+{
+    option allow_alias = true;
+    C       =  0;
+    C_SHARP =  1;
+    D_FLAT  =  1;
+    D       =  2;
+    D_SHARP =  3;
+    E_FLAT  =  3;
+    E       =  4;
+    F       =  5;
+    F_SHARP =  6;
+    G_FLAT  =  6;
+    G       =  7;
+    G_SHARP =  8;
+    A_FLAT  =  8;
+    A       =  9;
+    A_SHARP = 10;
+    B_FLAT  = 10;
+    B       = 11;
+}
+
+message Pitch
+{
+    optional int32 octave = 1;
+    optional Note note = 2;
+}
+
+// A note at a specific point in time
+message TimePointNote
+{
+    optional int64 timestamp = 1;  // Timestamp since epoch in milliseconds
+    optional Pitch pitch = 2;
+    optional uint32 velocity = 3;  // Velocity value, should be in the range 0-127
+}
+
+// A note played on a span of time
+message TimeSpanNote
+{
+    optional int64 timestamp = 1;  // Timestamp since epoch in milliseconds
+    optional Pitch pitch = 2;
+    optional uint32 velocity = 3;  // Velocity value, should be in the range 0-127
+    optional uint32 duration = 4;  // Note duration
+}
