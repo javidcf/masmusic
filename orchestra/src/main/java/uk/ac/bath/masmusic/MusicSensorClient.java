@@ -10,6 +10,8 @@ import edu.bath.sensorframework.client.SensorClient;
 import edu.bath.sensorframework.client.SensorMQTTClient;
 import jason.asSyntax.Literal;
 import jm.music.data.Note;
+import uk.ac.bath.masmusic.protobuf.Pitch;
+import uk.ac.bath.masmusic.protobuf.TimePointNote;
 
 /**
  * A sensor client that receives music events from a MQTT BSF network.
@@ -51,9 +53,9 @@ public class MusicSensorClient {
                     int pitchValue = (octave + 1) * 12 + baseNoteValue;
                     int velocity = message.getVelocity();
 
-                    Literal literal = Literal.parseLiteral(
-                            String.format("%s(%d, %d)", MasMusic.HEAR_EVENT,
-                                    pitchValue, velocity));
+                    Literal literal = Literal
+                            .parseLiteral(String.format("%s(%d, %d)",
+                                    MasMusic.HEAR_EVENT, pitchValue, velocity));
 
                     for (Perceiver perceiver : perceivers) {
                         perceiver.addPercept(literal);

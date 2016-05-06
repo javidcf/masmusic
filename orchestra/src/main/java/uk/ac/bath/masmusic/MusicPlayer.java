@@ -5,6 +5,8 @@ import java.io.IOException;
 import edu.bath.sensorframework.ProtobufDataReading;
 import edu.bath.sensorframework.sensor.Sensor;
 import jm.music.data.Note;
+import uk.ac.bath.masmusic.protobuf.Pitch;
+import uk.ac.bath.masmusic.protobuf.TimePointNote;
 
 public class MusicPlayer extends Sensor {
 
@@ -29,16 +31,12 @@ public class MusicPlayer extends Sensor {
     }
 
     public void publishMusic(Note note, int velocity, long timestamp) {
-        uk.ac.bath.masmusic.Note baseNote = uk.ac.bath.masmusic.Note
+        uk.ac.bath.masmusic.protobuf.Note baseNote = uk.ac.bath.masmusic.protobuf.Note
                 .valueOf(note.getPitch() % 12);
         int octave = (note.getPitch() / 12) - 1;
         TimePointNote timePointNote = noteBuilder
-                .setPitch(pitchBuilder
-                        .setNote(baseNote)
-                        .setOctave(octave))
-                .setVelocity(velocity)
-                .setTimestamp(timestamp)
-                .build();
+                .setPitch(pitchBuilder.setNote(baseNote).setOctave(octave))
+                .setVelocity(velocity).setTimestamp(timestamp).build();
         try {
             publish(new ProtobufDataReading<TimePointNote>(timePointNote));
         } catch (IOException e) {

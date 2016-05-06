@@ -6,7 +6,7 @@ package masmusic;
 option java_generate_equals_and_hash = true;
 option java_multiple_files = true;
 option java_outer_classname = "MasMusicProto";
-option java_package = "uk.ac.bath.masmusic";
+option java_package = "uk.ac.bath.masmusic.protobuf";
 
 enum Note
 {

@@ -3,11 +3,11 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>uk.ac.bath.masmusic</groupId>
-	<artifactId>masmusic</artifactId>
+	<artifactId>masmusic-orchestra</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
-	<name>masmusic</name>
+	<name>MasMusic orchestra</name>
 	<url>https://masmusic.bath.ac.uk</url>
 
 	<properties>

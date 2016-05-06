@@ -89,7 +89,7 @@ public class ReplayAgent extends AgArch implements Perceiver {
 
     private void play(Note note) {
         long timestamp = System.currentTimeMillis();
-        // sensor.publishMusic(note, MasMusic.DEFAULT_VELOCITY, timestamp);
+        sensor.publishMusic(note, MasMusic.DEFAULT_VELOCITY, timestamp);
         sensor.publishMusic(new Note(note.getPitch() + 7, 1),
                 MasMusic.DEFAULT_VELOCITY, timestamp + 300);
         sensor.publishMusic(new Note(note.getPitch() + 12, 1),
