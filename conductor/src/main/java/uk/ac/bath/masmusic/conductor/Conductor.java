@@ -1,5 +1,7 @@
 package uk.ac.bath.masmusic.conductor;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
@@ -18,9 +20,17 @@ import uk.ac.bath.masmusic.conductor.cep.EsperMessageHandler;
 import uk.ac.bath.masmusic.integration.ProtobufBase64MqttMessageConverter;
 import uk.ac.bath.masmusic.protobuf.TimePointNote;
 
+/**
+ * Conductor application.
+ *
+ * @author Javier Dehesa
+ */
 @SpringBootApplication
 // @EnableIntegration  // Is this necessary?
 public class Conductor implements CommandLineRunner {
+
+    /** Logger */
+    private static Logger LOG = LoggerFactory.getLogger(Conductor.class);
 
     @Value("${mqtt.username}")
     private String mqttUsername;
@@ -40,20 +50,36 @@ public class Conductor implements CommandLineRunner {
     @Autowired
     private EsperMessageHandler messageHandler;
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void run(String... args) {
-        System.out.println("Hello");
+        LOG.info("Conductor started, press Ctrl+C to finish...");
     }
 
+    /**
+     * Start the conductor.
+     *
+     * @param args
+     *            Command-line arguments
+     * @throws Exception
+     */
     public static void main(String[] args) throws Exception {
         SpringApplication.run(Conductor.class, args);
     }
 
+    /**
+     * @return MQTT channel
+     */
     @Bean
     public MessageChannel mqttInputChannel() {
         return new DirectChannel();
     }
 
+    /**
+     * @return MQTT message converter for Protocol Buffers message
+     */
     @Bean
     public MqttMessageConverter messageConverter() {
         // return new ProtobufMqttMessageConverter<TimePointNote>(
@@ -62,6 +88,9 @@ public class Conductor implements CommandLineRunner {
                 TimePointNote.class, mqttQos, mqttRetain);
     }
 
+    /**
+     * @return MQTT message producer
+     */
     @Bean
     public MessageProducerSupport mqttInbound() {
         MqttPahoMessageDrivenChannelAdapter adapter = new MqttPahoMessageDrivenChannelAdapter(
@@ -72,6 +101,9 @@ public class Conductor implements CommandLineRunner {
         return adapter;
     }
 
+    /**
+     * @return MQTT flow
+     */
     @Bean
     public IntegrationFlow mqttInFlow() {
         IntegrationFlows.from(mqttInbound());
