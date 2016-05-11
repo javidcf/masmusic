@@ -1,8 +1,6 @@
 package uk.ac.bath.masmusic.conductor.cep;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -29,17 +27,11 @@ public class BeatTracker implements EsperStatementSubscriber {
     /** A minute (ms) */
     int MINUTE = 60000;
 
-    /** Minimum beat value */
-    private static final int MIN_BEAT = 40;
-
-    /** Maximum beat value */
-    private static final int MAX_BEAT = 240;
-
     /** Quantization step size (ms) */
     private static final int QUANTIZATION = 50;
 
     /** Window size for beat analysis (ms) */
-    private static final int ANALYSIS_WINDOW = 5000;
+    private static final int ANALYSIS_WINDOW = 6000;
 
     /** Frequency of beat analysis (ms) */
     private static final int ANALYSIS_FREQUENCY = 1000;
@@ -47,13 +39,16 @@ public class BeatTracker implements EsperStatementSubscriber {
     /** Minimum number of events required to perform a beat analysis */
     private static final int MINIMUM_NUM_EVENTS = 4;
 
-    /** Number of hypothesis to consider for beat analysis */
-    private static final int NUM_HYPOTHESES = 10;
+    /** Minimum beat duration */
+    private static final int MIN_BEAT = 40;
+
+    /** Maximum beat duration */
+    private static final int MAX_BEAT = 240;
 
     /** Logger */
     private static Logger LOG = LoggerFactory.getLogger(BeatTracker.class);
 
-    /** Events in the last analyzed window (not necessarily sorted by time) */
+    /** Events in the last analyzed window (sorted by time) */
     private ArrayList<NoteReading> readings = new ArrayList<>();
 
     /** Current beat value */
@@ -84,45 +79,43 @@ public class BeatTracker implements EsperStatementSubscriber {
         return beat.get();
     }
 
+    /**
+     * @return The current beat reference time
+     */
+    public long getCurrentReference() {
+        return reference.get();
+    }
+
     private void estimateBeat() {
         if (readings.size() < MINIMUM_NUM_EVENTS) {
             return;
         }
-        int estimatedBeat = beat.get();
+        int estimatedBeat = Math.round(((float) MINUTE) / beat.get());
         long estimatedReference = reference.get();
-        double estimationScore = 0;
+        double estimationScore = Double.NEGATIVE_INFINITY;
 
-        // Reorder by importance
-        Collections.sort(readings, Collections.reverseOrder());
-        // Consider at least NUM_HYPOTHESES, but more if there is a tie
-        int numHypo = NUM_HYPOTHESES;
-        if (readings.size() > numHypo) {
-            double lastImportance = readings.get(numHypo - 1).importance;
-            while ((readings.size() > numHypo)
-                    && (readings.get(numHypo).importance >= lastImportance)) {
-                numHypo++;
-            }
-        }
-        // Consider the most salient readings
-        Iterator<NoteReading> it = readings.iterator();
-        for (int iHypo = 0; (iHypo < NUM_HYPOTHESES) && it.hasNext(); iHypo++) {
-            // For each important reading, consider every possible beat
-            long referenceTimestamp = it.next().timestamp;
-            for (int beatHypo = MIN_BEAT; beatHypo <= MAX_BEAT; beatHypo++) {
-                // Check score and save it if better
-                double score = beatHypothesisScore(beatHypo,
-                        referenceTimestamp);
-                if (score > estimationScore) {
-                    estimatedBeat = beatHypo;
-                    estimatedReference = referenceTimestamp;
-                    estimationScore = score;
+        // Test distance between every pair of events
+        for (int iRef = 0; iRef < readings.size(); iRef++) {
+            long refTimestamp = readings.get(iRef).timestamp;
+            for (int iComp = iRef + 1; iComp < readings.size(); iComp++) {
+                long compTimestamp = readings.get(iComp).timestamp;
+                int beatDuration = (int) Math.abs(compTimestamp - refTimestamp);
+                int beat = Math.round(((float) MINUTE) / beatDuration);
+                if (beat >= MIN_BEAT && beat <= MAX_BEAT) {
+                    double score = beatHypothesisScore(beat, refTimestamp);
+                    if (score > estimationScore) {
+                        estimatedBeat = beat;
+                        estimatedReference = refTimestamp;
+                        estimationScore = score;
+                    }
                 }
             }
         }
 
         LOG.debug("New beat: {} (score: {})", estimatedBeat, estimationScore);
         beat.set(estimatedBeat);
-        reference.set(estimatedReference % (MINUTE / estimatedBeat));
+        reference.set(estimatedReference
+                % (Math.round(((float) MINUTE) / estimatedBeat)));
     }
 
     /**
@@ -134,32 +127,41 @@ public class BeatTracker implements EsperStatementSubscriber {
      *            A reference timestamp for the beat
      * @return The hypothesis score
      */
-    private double beatHypothesisScore(int beat, long referenceTimestamp) {
+    private double beatHypothesisScore(int beat,
+            long referenceTimestamp) {
         int beatDuration = MINUTE / beat;
-        // Threshold to consider an event is on beat - a demisemiquaver
+        // Threshold to consider an event could be a beat
         int beatThreshold = beatDuration / 8;
-        // Estimate score
+
+        // Find the beat timestamp before the first timestamp
+        long referenceOffset = referenceTimestamp % beatDuration;
+        long iBeat = (readings.get(0).timestamp +
+                beatThreshold - referenceOffset)
+                / beatDuration;
+        long beatTimestamp = iBeat * beatDuration + referenceOffset;
+
+        // Check the hits
         double score = .0;
-        long timeStart = Long.MAX_VALUE;
-        long timeEnd = Long.MIN_VALUE;
-        int numHits = 0;
         for (NoteReading reading : readings) {
-            timeStart = Math.min(reading.timestamp, timeStart);
-            timeEnd = Math.max(reading.timestamp, timeEnd);
-            // Check if reading is on beat according to the hypothesis
-            long timeDiff = Math.abs(reading.timestamp - referenceTimestamp);
-            long deviation = (timeDiff + beatThreshold / 2) % beatDuration;
+            // Timestamp of the beginning of the hit area
+            long readingHitStart = reading.timestamp - beatThreshold;
+            // Move to the beat at the reading (or the next one)
+            while (beatTimestamp < readingHitStart) {
+                beatTimestamp += beatDuration;
+            }
+            // Check if there is a hit
+            long deviation = Math.abs(beatTimestamp - reading.timestamp);
             if (deviation < beatThreshold) {
                 // Increase score
-                score += (reading.importance);
-                numHits++;
+                score += (reading.importance * deviation) / beatThreshold;
+                // Correct beat timestamp
+                beatTimestamp = reading.timestamp;
             }
         }
 
-        // Penalize higher tempos considering hit rate
-        int maxBeats = ANALYSIS_WINDOW / beatDuration;
-        double hitRate = ((double) numHits) / maxBeats;
-        return score * Math.exp(hitRate);
+        long windowSize = ANALYSIS_WINDOW;
+        int numBeats = (int) (windowSize / beatDuration);
+        return score / Math.log(numBeats);
     }
 
     /**
@@ -177,7 +179,7 @@ public class BeatTracker implements EsperStatementSubscriber {
         int absolutePitch = Math
                 .min(Math.max(semitone + 12 * (pitch.getOctave() + 1), 0), 128);
         int velocity = Math.min(Math.max(note.getVelocity(), 0), 128);
-        double importance = (velocity / 128.0) / (absolutePitch / 128.0);
+        double importance = velocity / (absolutePitch + 1.0);
         return importance;
     }
 
