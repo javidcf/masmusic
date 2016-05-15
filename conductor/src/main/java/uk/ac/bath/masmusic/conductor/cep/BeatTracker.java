@@ -8,7 +8,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import uk.ac.bath.masmusic.protobuf.Pitch;
 import uk.ac.bath.masmusic.protobuf.TimePointNote;
@@ -18,7 +17,7 @@ import uk.ac.bath.masmusic.protobuf.TimePointNote;
  *
  * @author Javier Dehesa
  */
-@Component
+// @Component
 public class BeatTracker implements EsperStatementSubscriber {
 
     /** Default initial beat value */
@@ -67,8 +66,7 @@ public class BeatTracker implements EsperStatementSubscriber {
      */
     @Autowired
     public BeatTracker(com.espertech.esper.client.Configuration config) {
-        config.addPlugInSingleRowFunction("noteImportance",
-                "uk.ac.bath.masmusic.conductor.cep.BeatTracker",
+        config.addPlugInSingleRowFunction("noteImportance", "uk.ac.bath.masmusic.conductor.cep.BeatTracker",
                 "noteImportance");
     }
 
@@ -114,8 +112,7 @@ public class BeatTracker implements EsperStatementSubscriber {
 
         LOG.debug("New beat: {} (score: {})", estimatedBeat, estimationScore);
         beat.set(estimatedBeat);
-        reference.set(estimatedReference
-                % (Math.round(((float) MINUTE) / estimatedBeat)));
+        reference.set(estimatedReference % (Math.round(((float) MINUTE) / estimatedBeat)));
     }
 
     /**
@@ -127,41 +124,73 @@ public class BeatTracker implements EsperStatementSubscriber {
      *            A reference timestamp for the beat
      * @return The hypothesis score
      */
-    private double beatHypothesisScore(int beat,
-            long referenceTimestamp) {
+    private double beatHypothesisScore(int beat, long referenceTimestamp) {
         int beatDuration = MINUTE / beat;
         // Threshold to consider an event could be a beat
-        int beatThreshold = beatDuration / 8;
+        int beatThreshold = beatDuration / 16;
 
         // Find the beat timestamp before the first timestamp
         long referenceOffset = referenceTimestamp % beatDuration;
-        long iBeat = (readings.get(0).timestamp +
-                beatThreshold - referenceOffset)
-                / beatDuration;
-        long beatTimestamp = iBeat * beatDuration + referenceOffset;
+        long firstTimestampRef = readings.get(0).timestamp + beatThreshold - referenceOffset;
+        long startBeatIdx = firstTimestampRef / beatDuration;
+        long beatTimestamp = startBeatIdx * beatDuration + referenceOffset;
 
-        // Check the hits
+        // Check the hits up to semiquavers
+        int iSemiquaver = 0;
+        int semiquaverDuration = Math.round(beatDuration / 4.0f);
         double score = .0;
+        double hits = .0;
+        boolean hit = false;
         for (NoteReading reading : readings) {
             // Timestamp of the beginning of the hit area
             long readingHitStart = reading.timestamp - beatThreshold;
             // Move to the beat at the reading (or the next one)
             while (beatTimestamp < readingHitStart) {
-                beatTimestamp += beatDuration;
+                beatTimestamp += semiquaverDuration;
+                iSemiquaver++;
+                hit = false;
             }
             // Check if there is a hit
             long deviation = Math.abs(beatTimestamp - reading.timestamp);
             if (deviation < beatThreshold) {
                 // Increase score
-                score += (reading.importance * deviation) / beatThreshold;
+                switch (iSemiquaver % 4) {
+                case 0:
+                    // Beat hit
+                    score += reading.importance;
+                    if (!hit) {
+                        hits += 1.0;
+                    }
+                    break;
+                case 2:
+                    // Quaver hit
+                    score += reading.importance / 2;
+                    if (!hit) {
+                        hits += .5;
+                    }
+                    break;
+
+                default:
+                    // Semiquaver hit
+                    score += reading.importance / 4;
+                    if (!hit) {
+                        hits += .25;
+                    }
+                    break;
+                }
+                hit = true;
                 // Correct beat timestamp
                 beatTimestamp = reading.timestamp;
             }
         }
 
-        long windowSize = ANALYSIS_WINDOW;
-        int numBeats = (int) (windowSize / beatDuration);
-        return score / Math.log(numBeats);
+        // long windowSize = ANALYSIS_WINDOW;
+        long windowSize = readings.get(readings.size() - 1).timestamp - readings.get(0).timestamp;
+        double numBeats = ((double) windowSize) / beatDuration;
+        double hitRate = hits / numBeats;
+        return score * hitRate;
+
+        // return score;
     }
 
     /**
@@ -176,8 +205,7 @@ public class BeatTracker implements EsperStatementSubscriber {
     public static double noteImportance(TimePointNote note) {
         Pitch pitch = note.getPitch();
         int semitone = pitch.getNote().getNumber();
-        int absolutePitch = Math
-                .min(Math.max(semitone + 12 * (pitch.getOctave() + 1), 0), 128);
+        int absolutePitch = Math.min(Math.max(semitone + 12 * (pitch.getOctave() + 1), 0), 128);
         int velocity = Math.min(Math.max(note.getVelocity(), 0), 128);
         double importance = velocity / (absolutePitch + 1.0);
         return importance;
@@ -215,8 +243,7 @@ public class BeatTracker implements EsperStatementSubscriber {
                 return false;
             }
             NoteReading other = (NoteReading) obj;
-            if (Double.doubleToLongBits(importance) != Double
-                    .doubleToLongBits(other.importance)) {
+            if (Double.doubleToLongBits(importance) != Double.doubleToLongBits(other.importance)) {
                 return false;
             }
             if (timestamp != other.timestamp) {
@@ -227,14 +254,12 @@ public class BeatTracker implements EsperStatementSubscriber {
 
         @Override
         public int compareTo(NoteReading o) {
-            return this.importance < o.importance ? -1
-                    : this.importance > o.importance ? 1 : 0;
+            return this.importance < o.importance ? -1 : this.importance > o.importance ? 1 : 0;
         }
 
         @Override
         public String toString() {
-            return "NoteReading [timestamp=" + timestamp + ", importance="
-                    + importance + "]";
+            return "NoteReading [timestamp=" + timestamp + ", importance=" + importance + "]";
         }
     }
 
@@ -245,12 +270,9 @@ public class BeatTracker implements EsperStatementSubscriber {
      */
     @Override
     public String getStatement() {
-        return "select"
-                + " Math.round(avg(timestamp)) as timestamp"
-                + ", noteImportance(*) as importance"
-                + " from TimePointNote.win:time(" + ANALYSIS_WINDOW + " msec) "
-                + " group by Math.round(timestamp / " + QUANTIZATION + ")"
-                + " output snapshot every " + ANALYSIS_FREQUENCY + " msec";
+        return "select" + " Math.round(avg(timestamp)) as timestamp" + ", noteImportance(*) as importance"
+                + " from TimePointNote.win:time(" + ANALYSIS_WINDOW + " msec) " + " group by Math.round(timestamp / "
+                + QUANTIZATION + ")" + " output snapshot every " + ANALYSIS_FREQUENCY + " msec";
     }
 
     /**

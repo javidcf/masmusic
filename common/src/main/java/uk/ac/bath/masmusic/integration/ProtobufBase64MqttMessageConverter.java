@@ -3,6 +3,8 @@ package uk.ac.bath.masmusic.integration;
 import java.lang.reflect.Method;
 
 import org.eclipse.paho.client.mqttv3.MqttMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.integration.mqtt.support.DefaultPahoMessageConverter;
 import org.springframework.messaging.Message;
 import org.springframework.util.Base64Utils;
@@ -18,7 +20,10 @@ import com.google.protobuf.MessageLite;
  *            Protocol Buffers message type
  */
 public class ProtobufBase64MqttMessageConverter<E extends MessageLite>
-        extends DefaultPahoMessageConverter {
+extends DefaultPahoMessageConverter {
+
+    /** Logger */
+    private static Logger LOG = LoggerFactory.getLogger(ProtobufBase64MqttMessageConverter.class);
 
     /** The Protocol Buffers message class */
     private Class<E> messageClass;
@@ -28,10 +33,10 @@ public class ProtobufBase64MqttMessageConverter<E extends MessageLite>
 
     /**
      * Construct a converter with default settings.
-     * 
+     *
      * @param messageClass
      *            The Protocol Buffers message class
-     * 
+     *
      * @see DefaultPahoMessageConverter#DefaultPahoMessageConverter()
      */
     public ProtobufBase64MqttMessageConverter(Class<E> messageClass) {
@@ -44,7 +49,7 @@ public class ProtobufBase64MqttMessageConverter<E extends MessageLite>
      *
      * @see DefaultPahoMessageConverter#DefaultPahoMessageConverter(int,
      *      boolean)
-     * 
+     *
      * @param messageClass
      *            The Protocol Buffers message class
      * @param defaultQos
@@ -62,7 +67,7 @@ public class ProtobufBase64MqttMessageConverter<E extends MessageLite>
      * retain policy settings.
      *
      * @see DefaultPahoMessageConverter#DefaultPahoMessageConverter(String)
-     * 
+     *
      * @param messageClass
      *            The Protocol Buffers message class
      * @param charset
@@ -79,7 +84,7 @@ public class ProtobufBase64MqttMessageConverter<E extends MessageLite>
      *
      * @see DefaultPahoMessageConverter#DefaultPahoMessageConverter(int,
      *      boolean, String)
-     * 
+     *
      * @param messageClass
      *            The Protocol Buffers message class
      * @param defaultQos

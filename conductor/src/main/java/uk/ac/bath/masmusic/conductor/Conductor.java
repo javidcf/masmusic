@@ -18,7 +18,7 @@ import org.springframework.messaging.MessageChannel;
 
 import uk.ac.bath.masmusic.conductor.cep.EsperMessageHandler;
 import uk.ac.bath.masmusic.integration.ProtobufBase64MqttMessageConverter;
-import uk.ac.bath.masmusic.protobuf.TimePointNote;
+import uk.ac.bath.masmusic.protobuf.TimeSpanNote;
 
 /**
  * Conductor application.
@@ -82,10 +82,10 @@ public class Conductor implements CommandLineRunner {
      */
     @Bean
     public MqttMessageConverter messageConverter() {
-        // return new ProtobufMqttMessageConverter<TimePointNote>(
-        //        TimePointNote.class, mqttQos, mqttRetain);
-        return new ProtobufBase64MqttMessageConverter<TimePointNote>(
-                TimePointNote.class, mqttQos, mqttRetain);
+        // return new ProtobufMqttMessageConverter<TimeSpanNote>(
+        //        TimeSpanNote.class, mqttQos, mqttRetain);
+        return new ProtobufBase64MqttMessageConverter<TimeSpanNote>(
+                TimeSpanNote.class, mqttQos, mqttRetain);
     }
 
     /**
