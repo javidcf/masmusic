@@ -40,17 +40,29 @@ class BeatInducer {
      * @return A list of induced possible beat durations
      */
     public List<Double> induceBeat(List<Onset> onsets) {
+        if (onsets.size() < 2) {
+            return new ArrayList<Double>(0);
+        }
         // Create base clusters
         List<BeatCluster> beatClusters = new LinkedList<>();
         // Consider every pair of onsets
-        for (Onset onsetRef : onsets) {
-            for (Onset onset : onsets) {
+        ListIterator<Onset> itRef = onsets.listIterator();
+        while (itRef.hasNext()) {
+            Onset onsetRef = itRef.next();
+            ListIterator<Onset> itOther = onsets.listIterator(itRef.nextIndex());
+            while (itOther.hasNext()) {
+                Onset onset = itOther.next();
                 // Update clusters if time offset is within range
                 long timeDiff = Math.abs(onset.getTimestamp() - onsetRef.getTimestamp());
-                if ((timeDiff >= MIN_INTERONSET_INTERVAL)
-                        && (timeDiff <= MAX_INTERONSET_INTERVAL)) {
-                    updateClusters(beatClusters, timeDiff);
+                if (timeDiff < MIN_INTERONSET_INTERVAL) {
+                    // Too short
+                    continue;
                 }
+                if (timeDiff > MAX_INTERONSET_INTERVAL) {
+                    // Too long - go to next onsetRef
+                    break;
+                }
+                updateClusters(beatClusters, timeDiff);
             }
         }
         // Merge similar clusters
@@ -81,7 +93,7 @@ class BeatInducer {
             public int compare(Integer idx1, Integer idx2) {
                 int size1 = beatClustersArr.get(idx1).size;
                 int size2 = beatClustersArr.get(idx2).size;
-                return size1 > size2 ? 1 : size1 < size2 ? -1 : 0;
+                return size1 < size2 ? 1 : size1 > size2 ? -1 : 0;
             }
         });
 
@@ -313,6 +325,11 @@ class BeatInducer {
         void update(double beatDuration) {
             this.beatDuration = ((this.beatDuration * this.size) + beatDuration) / (this.size + 1);
             this.size++;
+        }
+
+        @Override
+        public String toString() {
+            return "BeatCluster [beatDuration=" + beatDuration + ", size=" + size + "]";
         }
     }
 
