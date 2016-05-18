@@ -44,8 +44,8 @@ public class Conductor implements CommandLineRunner {
     private boolean mqttRetain;
     @Value("${mqtt.client.id}")
     private String mqttClientId;
-    @Value("${mqtt.listen.topic}")
-    private String mqttListenTopic;
+    @Value("${mqtt.hear.topic}")
+    private String mqttHearTopic;
 
     @Autowired
     private EsperMessageHandler messageHandler;
@@ -94,7 +94,7 @@ public class Conductor implements CommandLineRunner {
     @Bean
     public MessageProducerSupport mqttInbound() {
         MqttPahoMessageDrivenChannelAdapter adapter = new MqttPahoMessageDrivenChannelAdapter(
-                mqttUrl, mqttClientId, mqttListenTopic);
+                mqttUrl, mqttClientId, mqttHearTopic);
         adapter.setConverter(messageConverter());
         adapter.setQos(mqttQos);
         adapter.setOutputChannel(mqttInputChannel());

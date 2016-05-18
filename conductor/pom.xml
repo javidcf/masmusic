@@ -6,7 +6,7 @@
 	<packaging>jar</packaging>
 
 	<name>MasMusic conductor</name>
-	<url>http://maven.apache.org</url>
+	<url>https://masmusic.bath.ac.uk</url>
 
 	<parent>
 		<groupId>uk.ac.bath.masmusic</groupId>
@@ -17,10 +17,10 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<esper.version>5.4.0</esper.version>
-		<spring-integration-java-dsl.version>1.1.2.RELEASE</spring-integration-java-dsl.version>
 	</properties>
 
 	<dependencies>
+		<!-- Common -->
 		<dependency>
 			<groupId>uk.ac.bath.masmusic</groupId>
 			<artifactId>masmusic-common</artifactId>
@@ -38,8 +38,6 @@
 		<dependency>
 			<groupId>org.springframework.integration</groupId>
 			<artifactId>spring-integration-java-dsl</artifactId>
-			<version>${spring-integration-java-dsl.version}</version>
-			<scope>compile</scope>
 		</dependency>
 
 		<!-- Esper -->

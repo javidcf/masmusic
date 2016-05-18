@@ -14,16 +14,28 @@ class BeatTracker implements Comparable<BeatTracker>, Cloneable {
     /** Time margin to consider a beat to be on time (ms). */
     private static final double INNER_MARGIN = 40.;
 
-    /** Proportion of beat duration in which a beat before time may be correct. */
+    /**
+     * Proportion of beat duration in which a beat before time may be correct.
+     */
     private static final double OUTER_MARGIN_PRE_FACTOR = .15;
 
-    /** Proportion of beat duration in which a beat after time may be correct. */
+    /**
+     * Proportion of beat duration in which a beat after time may be correct.
+     */
     private static final double OUTER_MARGIN_POST_FACTOR = .3;
 
     /** Penalty factor applied to onsets out of time. */
     private static final double MISS_PENALTY_FACTOR = .5;
 
-    /** Factor by which the tempo of a tracker is displaced according to a new beat position. */
+    /**
+     * Maximum proportion of the initial beat duration that it may change.
+     */
+    private static final double MAX_CHANGE_FACTOR = .2;
+
+    /**
+     * Factor by which the tempo of a tracker is displaced according to a new
+     * beat position.
+     */
     private static final double CORRECTION_FACTOR = .02;
 
     /** Time after which a tracker without beats hit is considered expired. */
@@ -34,6 +46,9 @@ class BeatTracker implements Comparable<BeatTracker>, Cloneable {
 
     /** Agent unique id. */
     private final int id;
+
+    /** Tracker initial beat duration. */
+    private final double initialBeatDuration;
 
     /** Tracker beat duration. */
     private double beatDuration;
@@ -59,9 +74,11 @@ class BeatTracker implements Comparable<BeatTracker>, Cloneable {
      */
     public BeatTracker(double beatDuration, double timestamp) {
         if (beatDuration <= 0) {
-            throw new IllegalArgumentException("The beat duration must be positive");
+            throw new IllegalArgumentException(
+                    "The beat duration must be positive");
         }
         this.id = ID_GENERATOR.getAndIncrement();
+        this.initialBeatDuration = beatDuration;
         this.beatDuration = beatDuration;
         this.timestamp = timestamp;
         this.lastHitTimestamp = timestamp;
@@ -106,11 +123,13 @@ class BeatTracker implements Comparable<BeatTracker>, Cloneable {
     /**
      * Check if the given timestamp should be considered as a hit.
      *
-     * A timestamp is considered a hit if it is within the inner margin of the tracker timestamp.
-     * This does not change the status of the tracker.
+     * A timestamp is considered a hit if it is within the inner margin of the
+     * tracker timestamp. This does not change the status of the tracker.
      *
-     * @param timestamp Timestamp to check
-     * @return true if the timestamp should be considered as a hit, false otherwise
+     * @param timestamp
+     *            Timestamp to check
+     * @return true if the timestamp should be considered as a hit, false
+     *         otherwise
      */
     public boolean isHit(double timestamp) {
         double minTimestamp = this.timestamp - INNER_MARGIN;
@@ -121,57 +140,74 @@ class BeatTracker implements Comparable<BeatTracker>, Cloneable {
     /**
      * Check if the given timestamp may be considered as a hit.
      *
-     * A timestamp may be considered a hit if it is within the outer margin of the tracker timestamp.
-     * This does not change the status of the tracker.
+     * A timestamp may be considered a hit if it is within the outer margin of
+     * the tracker timestamp. This does not change the status of the tracker.
      *
-     * @param timestamp Timestamp to check
+     * @param timestamp
+     *            Timestamp to check
      * @return true if the timestamp may be considered as a hit, false otherwise
      */
     public boolean mayHit(double timestamp) {
-        double minTimestamp = this.timestamp - this.beatDuration * OUTER_MARGIN_PRE_FACTOR;
-        double maxTimestamp = this.timestamp + this.beatDuration * OUTER_MARGIN_POST_FACTOR;
+        double minTimestamp = this.timestamp
+                - this.beatDuration * OUTER_MARGIN_PRE_FACTOR;
+        double maxTimestamp = this.timestamp
+                + this.beatDuration * OUTER_MARGIN_POST_FACTOR;
         return (minTimestamp <= timestamp) && (maxTimestamp >= timestamp);
     }
 
     /**
-     * Check if the given timestamp is after the outer margin of the tracker.
+     * Check if the tracker outer margin is behind the given timestamp.
      *
-     * @param timestamp Timestamp to check
-     * @return true if the given timestamp is after the outer margin of the tracker, false otherwise
+     * @param timestamp
+     *            Timestamp to check
+     * @return true if the tracker outer margin is behind the given timestamp,
+     *         false otherwise
      */
-    public boolean isAfterOuterMargin(double timestamp) {
-        double maxTimestamp = this.timestamp + this.beatDuration * OUTER_MARGIN_POST_FACTOR;
+    public boolean isMarginBehind(double timestamp) {
+        double maxTimestamp = this.timestamp
+                + this.beatDuration * OUTER_MARGIN_POST_FACTOR;
         return timestamp > maxTimestamp;
     }
 
     /**
      * Use the given timestamp as a beat hit.
      *
-     * @param timestamp The timestamp to use as hit
-     * @param salience The salience of the event
+     * @param hitTimestamp
+     *            The timestamp to use as hit
+     * @param salience
+     *            The salience of the event
      */
-    public void hit(double timestamp, double salience) {
+    public void hit(double hitTimestamp, double salience) {
         // Update score
-        double err = timestamp - this.timestamp;
+        double err = hitTimestamp - timestamp;
         double penalty;
         if (err < 0) {
-            penalty = 1 + MISS_PENALTY_FACTOR * err / (this.beatDuration * OUTER_MARGIN_PRE_FACTOR);
+            penalty = 1 + MISS_PENALTY_FACTOR * err
+                    / (beatDuration * OUTER_MARGIN_PRE_FACTOR);
         } else {
-            penalty = 1 - MISS_PENALTY_FACTOR * err / (this.beatDuration * OUTER_MARGIN_POST_FACTOR);
+            penalty = 1 - MISS_PENALTY_FACTOR * err
+                    / (beatDuration * OUTER_MARGIN_POST_FACTOR);
         }
         penalty = Math.max(Math.min(penalty, 1), 0);
-        this.score += salience * penalty;
-        // Update beat duration and timestamps
-        this.beatDuration += err * CORRECTION_FACTOR;
-        this.timestamp = timestamp;
-        this.lastHitTimestamp = timestamp;
+        score += salience * penalty;
+        // Update beat duration
+        double beatCorrected = beatDuration + err * CORRECTION_FACTOR;
+        double beatCorrectionChange = beatCorrected - initialBeatDuration;
+        double maxBeatChange = MAX_CHANGE_FACTOR * initialBeatDuration;
+        beatDuration = initialBeatDuration + beatCorrectionChange
+                * Math.min(Math.abs(maxBeatChange / beatCorrectionChange), 1);
+        // Update timestamps
+        timestamp = hitTimestamp;
+        lastHitTimestamp = hitTimestamp;
     }
 
     /**
      * Whether the tracker is expired at the given timestamp.
      *
-     * @param timestamp The timestamp to check
-     * @return true if the tracker is expired at the given timestamp, false otherwise
+     * @param timestamp
+     *            The timestamp to check
+     * @return true if the tracker is expired at the given timestamp, false
+     *         otherwise
      */
     public boolean isExpired(double timestamp) {
         return timestamp - this.lastHitTimestamp > EXPIRY_TIME;
@@ -180,7 +216,8 @@ class BeatTracker implements Comparable<BeatTracker>, Cloneable {
     @Override
     public int compareTo(BeatTracker other) {
         // Compare by start of outer margin
-        int comp = Double.compare(this.timestamp - this.beatDuration * OUTER_MARGIN_PRE_FACTOR,
+        int comp = Double.compare(
+                this.timestamp - this.beatDuration * OUTER_MARGIN_PRE_FACTOR,
                 other.timestamp - other.beatDuration * OUTER_MARGIN_PRE_FACTOR);
         if (comp == 0) {
             // Avoid having 0-valued comparisons with stable order

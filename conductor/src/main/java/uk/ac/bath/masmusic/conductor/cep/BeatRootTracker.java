@@ -91,8 +91,8 @@ public class BeatRootTracker implements EsperStatementSubscriber {
      *
      * The formula used here is an heuristic for the perceived sound importance.
      *
-     * @see <a href="http://users.auth.gr/emilios/papers/aaai2000.pdf">From
-     *      MIDI to traditional musical notation (Cambouropoulos, 2000)</a>
+     * @see <a href="http://users.auth.gr/emilios/papers/aaai2000.pdf">From MIDI
+     *      to traditional musical notation (Cambouropoulos, 2000)</a>
      *
      * @param note
      *            The note considered
@@ -101,11 +101,14 @@ public class BeatRootTracker implements EsperStatementSubscriber {
     public static double noteSalience(TimeSpanNote note) {
         Pitch pitch = note.getPitch();
         int semitone = pitch.getNote().getNumber();
-        int absolutePitch = Math.min(Math.max(semitone + 12 * (pitch.getOctave() + 1), 0), 128);
+        int absolutePitch = Math
+                .min(Math.max(semitone + 12 * (pitch.getOctave() + 1), 0), 128);
         double pitchFactor = Math.min(Math.max(absolutePitch, 30), 60);
         double velocityFactor = Math.min(Math.max(note.getVelocity(), 30), 90);
         double duration = note.getDuration();
         return duration * (velocityFactor / pitchFactor);
+        // return duration * (velocityFactor / (pitchFactor * pitchFactor));
+        // return duration * (velocityFactor / Math.pow(pitchFactor, 3));
     }
 
     /*** Esper ***/
