@@ -17,12 +17,6 @@ class BeatInducer {
     /** Beat cluster width (ms) */
     private static final int CLUSTER_WIDTH = 25;
 
-    /** Minimum tempo (bpm) */
-    private static final int MIN_TEMPO = 80;
-
-    /** Maximum tempo (bpm) */
-    private static final int MAX_TEMPO = 160;
-
     /** Minimum interval between to onsets (ms) */
     private static final int MIN_INTERONSET_INTERVAL = 70;
 
@@ -31,6 +25,30 @@ class BeatInducer {
 
     /** Number of best clusters considered for induction */
     private static final int NUM_BEST_CLUSTERS = 10;
+
+    /** Minimum tempo (bpm) */
+    private final int minTempo;
+
+    /** Maximum tempo (bpm) */
+    private final int maxTempo;
+
+    /**
+     * Constructor.
+     *
+     * @param minTempo
+     *            Minimum tempo that may be induced
+     * @param maxTempo
+     *            Maximum tempo that may be induced
+     * @throws IllegalArgumentException
+     *             If the tempo range is not valid
+     */
+    public BeatInducer(int minTempo, int maxTempo) {
+        if (minTempo <= 0 || minTempo > maxTempo) {
+            throw new IllegalArgumentException("Invalid tempo range");
+        }
+        this.minTempo = minTempo;
+        this.maxTempo = maxTempo;
+    }
 
     /**
      * Induce the beat for the given collection of onsets.
@@ -165,13 +183,13 @@ class BeatInducer {
             // Induced beat
             double beat = sum / weight;
             // Put within range (assumes grouping is not ternary)
-            while ((60000 / beat) < MIN_TEMPO) {
+            while ((60000 / beat) < minTempo) {
                 beat /= 2;
             }
-            while ((60000 / beat) > MAX_TEMPO) {
+            while ((60000 / beat) > maxTempo) {
                 beat *= 2;
             }
-            if ((60000 / beat) >= MIN_TEMPO) {
+            if ((60000 / beat) >= minTempo) {
                 inducedBeat.add(beat);
             }
         }

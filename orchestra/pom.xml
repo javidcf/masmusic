@@ -51,11 +51,13 @@
 		</dependency>
 
 		<!-- jMusic -->
+		<!--
 		<dependency>
 			<groupId>com.explodingart</groupId>
 			<artifactId>jmusic</artifactId>
 			<version>${jmusic.version}</version>
 		</dependency>
+		-->
 
 		<!-- JUnit -->
 		<dependency>

@@ -9,8 +9,6 @@ import com.espertech.esper.client.EPServiceProvider;
 import com.espertech.esper.client.EPServiceProviderManager;
 import com.espertech.esper.client.EPStatement;
 
-import uk.ac.bath.masmusic.beat.BeatRoot;
-
 /**
  * Esper-related application configuration.
  *
@@ -53,13 +51,5 @@ public class EsperConfiguration {
             statement.setSubscriber(subscriber);
         }
         return provider;
-    }
-
-    /**
-     * @return The BeatRoot beat tracker.
-     */
-    @Bean
-    public BeatRoot beatRoot() {
-        return new BeatRoot();
     }
 }

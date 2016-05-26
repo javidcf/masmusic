@@ -26,7 +26,7 @@ public class BeatRootTracker implements EsperStatementSubscriber {
     private static final int QUANTIZATION = 40;  // TODO Use this?
 
     /** Window size for beat analysis (ms) */
-    private static final int ANALYSIS_WINDOW = 10000;
+    private static final int ANALYSIS_WINDOW = 5000;
 
     /** Frequency of beat analysis (ms) */
     private static final int ANALYSIS_FREQUENCY = 1000;

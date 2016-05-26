@@ -32,9 +32,19 @@ public class BeatRoot {
 
     /**
      * Constructor.
+     *
+     * @param minTempo
+     *            Minimum tempo that may be estimated
+     * @param maxTempo
+     *            Maximum tempo that may be estimated
+     * @throws IllegalArgumentException
+     *             If the tempo range is not valid
      */
-    public BeatRoot() {
-        beatInducer = new BeatInducer();
+    public BeatRoot(int minTempo, int maxTempo) {
+        if (minTempo <= 0 || minTempo > maxTempo) {
+            throw new IllegalArgumentException("Invalid tempo range");
+        }
+        beatInducer = new BeatInducer(minTempo, maxTempo);
     }
 
     /**

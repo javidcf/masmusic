@@ -16,6 +16,7 @@ import org.springframework.integration.mqtt.inbound.MqttPahoMessageDrivenChannel
 import org.springframework.integration.mqtt.support.MqttMessageConverter;
 import org.springframework.messaging.MessageChannel;
 
+import uk.ac.bath.masmusic.beat.BeatRoot;
 import uk.ac.bath.masmusic.conductor.cep.EsperMessageHandler;
 import uk.ac.bath.masmusic.integration.ProtobufBase64MqttMessageConverter;
 import uk.ac.bath.masmusic.protobuf.TimeSpanNote;
@@ -46,6 +47,11 @@ public class Conductor implements CommandLineRunner {
     private String mqttClientId;
     @Value("${mqtt.hear.topic}")
     private String mqttHearTopic;
+
+    @Value("${beat.tempo.min}")
+    private int minTempo;
+    @Value("${beat.tempo.max}")
+    private int maxTempo;
 
     @Autowired
     private EsperMessageHandler messageHandler;
@@ -109,6 +115,14 @@ public class Conductor implements CommandLineRunner {
         IntegrationFlows.from(mqttInbound());
         return IntegrationFlows.from(mqttInbound()).handle(messageHandler)
                 .get();
+    }
+
+    /**
+     * @return The BeatRoot beat tracker.
+     */
+    @Bean
+    public BeatRoot beatRoot() {
+        return new BeatRoot(minTempo, maxTempo);
     }
 
 }
