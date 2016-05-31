@@ -3,7 +3,7 @@ package uk.ac.bath.masmusic.orchestra.mas;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Paths;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -35,15 +35,24 @@ public abstract class MasMusicAbstractAgent extends AgArch {
     /** Event for heard notes. */
     public static final String HEAR_EVENT = "hear";
 
+    /** Event for performance instructions. */
+    public static final String PERFORM_EVENT = "perform";
+
+    /** Event for beat. */
+    public static final String BEAT_EVENT = "beat";
+
+    /** Event for scale. */
+    public static final String SCALE_EVENT = "scale";
+
     /** MasMusic multi-agent system. */
     @Autowired
     private MasMusic masMusic;
 
     /** Agent perceived literals queue. */
-    private final Queue<Literal> hearPercepts;
+    private final Queue<Literal> percepts;
 
     public MasMusicAbstractAgent() {
-        hearPercepts = new ConcurrentLinkedQueue<Literal>();
+        percepts = new ConcurrentLinkedQueue<Literal>();
     }
 
     /**
@@ -70,12 +79,17 @@ public abstract class MasMusicAbstractAgent extends AgArch {
     @Override
     public List<Literal> perceive() {
         super.perceive();
-        Literal heard = hearPercepts.poll();
+        /*
+        Literal heard = percepts.poll();
         if (heard != null) {
             return Collections.singletonList(heard);
         } else {
             return Collections.emptyList();
         }
+        */
+        List<Literal> l = new ArrayList<>(percepts);
+        percepts.clear();
+        return l;
     }
 
     @Override
@@ -121,10 +135,54 @@ public abstract class MasMusicAbstractAgent extends AgArch {
      *            Timestamp at which the note was played
      */
     public void hear(int pitch, int velocity, long timestamp) {
-        // Create Jason literal
         Literal literal = Literal.parseLiteral(
                 String.format("%s(%d, %d)", HEAR_EVENT, pitch, velocity));
-        hearPercepts.offer(literal);
+        percepts.offer(literal);
+    }
+
+    /**
+     * Instruct the agent to perform in a time span.
+     *
+     * @param start
+     *            Timestamp of the beginning of the performance time span in
+     *            milliseconds
+     * @param duration
+     *            Duration of the performance time span in milliseconds
+     */
+    public void perform(long start, long duration) {
+        // perform(T_START, T_END)
+        Literal literal = Literal.parseLiteral(
+                String.format("%s(%d, %d)", PERFORM_EVENT, start,
+                        duration));
+        percepts.offer(literal);
+    }
+
+    /**
+     * Inform the agent about a new beat event.
+     *
+     * @param duration
+     *            Duration of the new beat in milliseconds
+     * @param phase
+     *            Phase of the new beat in milliseconds
+     */
+    public void newBeat(int duration, int phase) {
+        Literal literal = Literal.parseLiteral(
+                String.format("%s(%d, %d)", BEAT_EVENT, duration, phase));
+        percepts.offer(literal);
+    }
+
+    /**
+     * Inform the agent about a new scale event.
+     *
+     * @param fundamental
+     *            Name of the fundamental of the scale
+     * @param type
+     *            Name of the scale type
+     */
+    public void newScale(String fundamental, String type) {
+        Literal literal = Literal.parseLiteral(
+                String.format("%s(%s, %s)", SCALE_EVENT, fundamental, type));
+        percepts.offer(literal);
     }
 
     /**

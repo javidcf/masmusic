@@ -14,7 +14,6 @@ import org.springframework.stereotype.Component;
 import uk.ac.bath.masmusic.orchestra.MusicPlayer;
 import uk.ac.bath.masmusic.protobuf.Note;
 import uk.ac.bath.masmusic.protobuf.Pitch;
-import uk.ac.bath.masmusic.protobuf.TimePointNote;
 import uk.ac.bath.masmusic.protobuf.TimeSpanNote;
 
 /**
@@ -92,6 +91,15 @@ public class MasMusic implements MessageHandler, Runnable {
 
     @Override
     public void handleMessage(Message<?> message) throws MessagingException {
+        // TEST
+        for (MasMusicAbstractAgent agent : agents) {
+            agent.newBeat(500, 0);  // 120 bpm
+            agent.newScale("c", "major");
+            agent.perform(System.currentTimeMillis() + 1000, 3000);
+        }
+        // TEST
+
+        /*
         Object payload = message.getPayload();
         if (!(payload instanceof TimePointNote)) {
             return;
@@ -105,6 +113,7 @@ public class MasMusic implements MessageHandler, Runnable {
         for (MasMusicAbstractAgent agent : agents) {
             agent.hear(pitchValue, velocity, timestamp);
         }
+        */
     }
 
     /**
