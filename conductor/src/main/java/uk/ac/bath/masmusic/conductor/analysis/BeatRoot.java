@@ -1,10 +1,12 @@
-package uk.ac.bath.masmusic.beat;
+package uk.ac.bath.masmusic.conductor.analysis;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Queue;
+
+import uk.ac.bath.masmusic.common.Beat;
 
 /**
  * BeatRoot beat detection.

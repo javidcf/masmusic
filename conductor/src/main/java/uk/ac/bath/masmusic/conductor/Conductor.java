@@ -16,7 +16,7 @@ import org.springframework.integration.mqtt.inbound.MqttPahoMessageDrivenChannel
 import org.springframework.integration.mqtt.support.MqttMessageConverter;
 import org.springframework.messaging.MessageChannel;
 
-import uk.ac.bath.masmusic.beat.BeatRoot;
+import uk.ac.bath.masmusic.conductor.analysis.BeatRoot;
 import uk.ac.bath.masmusic.conductor.cep.EsperMessageHandler;
 import uk.ac.bath.masmusic.integration.ProtobufBase64MqttMessageConverter;
 import uk.ac.bath.masmusic.protobuf.TimeSpanNote;

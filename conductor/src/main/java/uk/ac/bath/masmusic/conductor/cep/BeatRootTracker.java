@@ -8,9 +8,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import uk.ac.bath.masmusic.beat.Beat;
-import uk.ac.bath.masmusic.beat.BeatRoot;
-import uk.ac.bath.masmusic.beat.Onset;
+import uk.ac.bath.masmusic.common.Beat;
+import uk.ac.bath.masmusic.conductor.analysis.BeatRoot;
+import uk.ac.bath.masmusic.conductor.analysis.Onset;
 import uk.ac.bath.masmusic.protobuf.Pitch;
 import uk.ac.bath.masmusic.protobuf.TimeSpanNote;
 

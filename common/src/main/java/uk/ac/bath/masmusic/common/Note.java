@@ -1,4 +1,4 @@
-package uk.ac.bath.masmusic.key;
+package uk.ac.bath.masmusic.common;
 
 public enum Note {
 
@@ -89,6 +89,51 @@ public enum Note {
             return "B";
         default:
             return "";
+        }
+    }
+
+    /**
+     * @param noteStr A string representing a note
+     * @return The note represented by the given string
+     */
+    public static Note fromString(String noteStr) {
+        switch (noteStr.trim().toUpperCase()) {
+        case "C":
+            return C;
+        case "C#":
+            return C_SHARP;
+        case "DB":
+            return D_FLAT;
+        case "D":
+            return D;
+        case "D#":
+            return D_SHARP;
+        case "EB":
+            return E_FLAT;
+        case "E":
+            return E;
+        case "F":
+            return F;
+        case "F#":
+            return F_SHARP;
+        case "GB":
+            return G_FLAT;
+        case "G":
+            return G;
+        case "G#":
+            return G_SHARP;
+        case "AB":
+            return A_FLAT;
+        case "A":
+            return A;
+        case "A#":
+            return A_SHARP;
+        case "BB":
+            return B_FLAT;
+        case "B":
+            return B;
+        default:
+            return null;
         }
     }
 }

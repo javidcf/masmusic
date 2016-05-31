@@ -1,4 +1,4 @@
-package uk.ac.bath.masmusic.beat;
+package uk.ac.bath.masmusic.conductor.analysis;
 
 /**
  * A note onset event.

@@ -1,6 +1,8 @@
-package uk.ac.bath.masmusic.beat;
+package uk.ac.bath.masmusic.conductor.analysis;
 
 import java.util.concurrent.atomic.AtomicInteger;
+
+import uk.ac.bath.masmusic.common.Beat;
 
 /**
  * A beat-tracking agent.

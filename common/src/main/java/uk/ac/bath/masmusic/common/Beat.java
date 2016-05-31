@@ -1,4 +1,4 @@
-package uk.ac.bath.masmusic.beat;
+package uk.ac.bath.masmusic.common;
 
 /**
  * A beat specification.
@@ -100,8 +100,8 @@ public class Beat implements Cloneable {
      *            Time at which the beat time is computed
      * @return The last beat that happened at the given timestamp
      */
-    long currentBeat(long timestamp) {
-        return ((timestamp - phase) / duration) * duration;
+    public long currentBeat(long timestamp) {
+        return ((timestamp - phase) / duration) * duration + phase;
     }
 
     /**
@@ -113,8 +113,8 @@ public class Beat implements Cloneable {
      *            Time at which the next beat time is computed
      * @return The next beat that will happen after the given timestamp
      */
-    long nextBeat(long timestamp) {
-        return (((timestamp - 1 - phase) / duration) + 1) * duration;
+    public long nextBeat(long timestamp) {
+        return currentBeat(timestamp) + duration;
     }
 
     /**
@@ -127,7 +127,7 @@ public class Beat implements Cloneable {
      *            Time at which the closest beat time is computed
      * @return The closest beat that to the timestamp
      */
-    long closestBeat(long timestamp) {
+    public long closestBeat(long timestamp) {
         long prev = currentBeat(timestamp);
         long next = nextBeat(timestamp);
         if ((timestamp - prev) <= (next - timestamp)) {
@@ -136,6 +136,7 @@ public class Beat implements Cloneable {
             return next;
         }
     }
+
     @Override
     public String toString() {
         return "Beat [tempo=" + getTempo() + ", duration=" + duration + ", phase=" + phase + "]";
