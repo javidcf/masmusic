@@ -64,29 +64,60 @@ public class ReplayAgent extends MasMusicAbstractAgent {
     private void compose(long start, long duration, Beat beat, Scale scale) {
         // Come up with some random melody
         long end = start + duration;
-        long currentTimestamp = beat.nextBeat(start);
+        long currentBeat = beat.nextBeat(start);
         long lastBeat = beat.currentBeat(end);
+        long currentTimestamp = currentBeat;
         // Middle fundamental
         int basePitch = 60 + scale.getFundamental().value();
         int currentDegree = 0;
-        // Generate notes
-        while (currentTimestamp < lastBeat) {
-            int degreeStep = (random.nextBoolean() ? 1 : -1)
-                    * random.nextInt(4);
-            currentDegree += degreeStep;
-            while (currentDegree < 0) {
-                currentDegree += scale.size();
-                basePitch -= 12;
+        // Generate notes with random rhythmic patterns
+        while (currentBeat < lastBeat) {
+            final int DIVISIONS = 1;
+            final int SLOTS = 1 << DIVISIONS;
+            int filled = 0;
+            while (filled < SLOTS) {
+                // Choose note duration
+                int durationSlotsExp = random
+                        .nextInt(log2Int(SLOTS - filled) + 1);
+                int durationSlots = 1 << durationSlotsExp;
+                int noteDuration = (beat.getDuration() * durationSlots) / SLOTS;
+                filled += durationSlots;
+
+                // Choose note pitch
+                int degreeStep = (random.nextBoolean() ? 1 : -1)
+                        * (random.nextInt(3) + 1);
+                currentDegree += degreeStep;
+                // Change direction if going too far
+                if ((currentDegree < 0 && basePitch <= 36)
+                        || (currentDegree >= scale.size() && basePitch >= 72)) {
+                    currentDegree -= degreeStep * 2;
+                }
+                // Adjust current octave
+                while (currentDegree < 0) {
+                    currentDegree += scale.size();
+                    basePitch -= 12;
+                }
+                while (currentDegree >= scale.size()) {
+                    currentDegree -= scale.size();
+                    basePitch += 12;
+                }
+                int pitch = basePitch + scale.getInterval(currentDegree);
+
+                // Play note
+                playNote(pitch, DEFAULT_VELOCITY, currentTimestamp,
+                        noteDuration);
+                currentTimestamp += noteDuration;
             }
-            while (currentDegree >= scale.size()) {
-                currentDegree -= scale.size();
-                basePitch += 12;
-            }
-            int pitch = basePitch + scale.getInterval(currentDegree);
-            playNote(pitch, DEFAULT_VELOCITY, currentTimestamp,
-                    beat.getDuration());
-            currentTimestamp = beat.nextBeat(currentTimestamp);
+            currentBeat = beat.nextBeat(currentBeat);
+            currentTimestamp = currentBeat;
         }
+    }
+
+    private static int log2Int(int value) {
+        if (value <= 0) {
+            throw new IllegalArgumentException();
+        }
+        return Integer.SIZE - 1 - Integer.numberOfLeadingZeros(value);
     }
 
 }

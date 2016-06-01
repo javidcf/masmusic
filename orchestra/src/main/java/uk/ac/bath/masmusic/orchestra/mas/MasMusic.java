@@ -89,13 +89,18 @@ public class MasMusic implements MessageHandler, Runnable {
         }
     }
 
+    private static boolean first = true;
+
     @Override
     public void handleMessage(Message<?> message) throws MessagingException {
         // TEST
         for (MasMusicAbstractAgent agent : agents) {
-            agent.newBeat(500, 0);  // 120 bpm
-            agent.newScale("c", "major");
-            agent.perform(System.currentTimeMillis() + 1000, 3000);
+            if (first) {
+                agent.newBeat(500, 0);  // 120 bpm
+                agent.newScale("c", "major");
+                agent.perform(System.currentTimeMillis() + 500, 20000);
+                first = false;
+            }
         }
         // TEST
 

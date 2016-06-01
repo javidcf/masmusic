@@ -4,6 +4,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -48,11 +49,27 @@ public abstract class MasMusicAbstractAgent extends AgArch {
     @Autowired
     private MasMusic masMusic;
 
-    /** Agent perceived literals queue. */
-    private final Queue<Literal> percepts;
+    /** Agent hearing literals queue. */
+    private final Queue<Literal> heard;
+
+    /** Agent instructions literals queue. */
+    private final List<Literal> instructions;
+
+    /** Currently perceived beat literal. */
+    private Literal currentBeat;
+
+    /** Currently perceived scale literal. */
+    private Literal currentScale;
+
+    /** Perceived literals. */
+    private final List<Literal> percepts;
 
     public MasMusicAbstractAgent() {
-        percepts = new ConcurrentLinkedQueue<Literal>();
+        heard = new ConcurrentLinkedQueue<Literal>();
+        instructions = Collections.synchronizedList(new ArrayList<>());
+        currentBeat = null;
+        currentScale = null;
+        percepts = new ArrayList<>();
     }
 
     /**
@@ -79,17 +96,18 @@ public abstract class MasMusicAbstractAgent extends AgArch {
     @Override
     public List<Literal> perceive() {
         super.perceive();
-        /*
-        Literal heard = percepts.poll();
-        if (heard != null) {
-            return Collections.singletonList(heard);
-        } else {
-            return Collections.emptyList();
-        }
-        */
-        List<Literal> l = new ArrayList<>(percepts);
         percepts.clear();
-        return l;
+        if (currentBeat != null) {
+            percepts.add(currentBeat);
+        }
+        if (currentScale != null) {
+            percepts.add(currentScale);
+        }
+        if (!heard.isEmpty()) {
+            percepts.add(heard.poll());
+        }
+        percepts.addAll(instructions);
+        return percepts;
     }
 
     @Override
@@ -137,7 +155,7 @@ public abstract class MasMusicAbstractAgent extends AgArch {
     public void hear(int pitch, int velocity, long timestamp) {
         Literal literal = Literal.parseLiteral(
                 String.format("%s(%d, %d)", HEAR_EVENT, pitch, velocity));
-        percepts.offer(literal);
+        heard.offer(literal);
     }
 
     /**
@@ -150,11 +168,10 @@ public abstract class MasMusicAbstractAgent extends AgArch {
      *            Duration of the performance time span in milliseconds
      */
     public void perform(long start, long duration) {
-        // perform(T_START, T_END)
         Literal literal = Literal.parseLiteral(
                 String.format("%s(%d, %d)", PERFORM_EVENT, start,
                         duration));
-        percepts.offer(literal);
+        instructions.add(literal);
     }
 
     /**
@@ -166,9 +183,8 @@ public abstract class MasMusicAbstractAgent extends AgArch {
      *            Phase of the new beat in milliseconds
      */
     public void newBeat(int duration, int phase) {
-        Literal literal = Literal.parseLiteral(
+        currentBeat = Literal.parseLiteral(
                 String.format("%s(%d, %d)", BEAT_EVENT, duration, phase));
-        percepts.offer(literal);
     }
 
     /**
@@ -180,9 +196,8 @@ public abstract class MasMusicAbstractAgent extends AgArch {
      *            Name of the scale type
      */
     public void newScale(String fundamental, String type) {
-        Literal literal = Literal.parseLiteral(
+        currentScale = Literal.parseLiteral(
                 String.format("%s(%s, %s)", SCALE_EVENT, fundamental, type));
-        percepts.offer(literal);
     }
 
     /**
