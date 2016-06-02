@@ -182,7 +182,7 @@ public abstract class MasMusicAbstractAgent extends AgArch {
      * @param phase
      *            Phase of the new beat in milliseconds
      */
-    public void newBeat(int duration, int phase) {
+    public void setBeat(int duration, int phase) {
         currentBeat = Literal.parseLiteral(
                 String.format("%s(%d, %d)", BEAT_EVENT, duration, phase));
     }
@@ -195,7 +195,7 @@ public abstract class MasMusicAbstractAgent extends AgArch {
      * @param type
      *            Name of the scale type
      */
-    public void newScale(String fundamental, String type) {
+    public void setScale(String fundamental, String type) {
         currentScale = Literal.parseLiteral(
                 String.format("%s(%s, %s)", SCALE_EVENT, fundamental, type));
     }

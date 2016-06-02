@@ -11,7 +11,7 @@ import org.springframework.messaging.MessageHandler;
 import org.springframework.messaging.MessagingException;
 import org.springframework.stereotype.Component;
 
-import uk.ac.bath.masmusic.orchestra.MusicPlayer;
+import uk.ac.bath.masmusic.orchestra.MusicGateway;
 import uk.ac.bath.masmusic.protobuf.Note;
 import uk.ac.bath.masmusic.protobuf.Pitch;
 import uk.ac.bath.masmusic.protobuf.TimeSpanNote;
@@ -30,7 +30,7 @@ public class MasMusic implements MessageHandler, Runnable {
 
     /** Output message channel. */
     @Autowired
-    private MusicPlayer musicPlayer;
+    private MusicGateway musicPlayer;
 
     /** Builder for {@link TimeSpanNote} objects. */
     private final TimeSpanNote.Builder timeSpanNoteBuilder;
@@ -96,8 +96,8 @@ public class MasMusic implements MessageHandler, Runnable {
         // TEST
         for (MasMusicAbstractAgent agent : agents) {
             if (first) {
-                agent.newBeat(500, 0);  // 120 bpm
-                agent.newScale("c", "major");
+                agent.setBeat(500, 0);  // 120 bpm
+                agent.setScale("c", "major");
                 agent.perform(System.currentTimeMillis() + 500, 20000);
                 first = false;
             }

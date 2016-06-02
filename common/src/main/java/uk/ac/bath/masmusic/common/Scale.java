@@ -52,7 +52,8 @@ public class Scale {
      *            Name of the scale
      */
     public Scale(Note fundamental, String name) {
-        this(fundamental, name, getScaleTypes().get(name.trim().toLowerCase()).intervals);
+        this(fundamental, name,
+                getScaleTypes().get(name.trim().toLowerCase()).intervals);
     }
 
     /**
@@ -122,6 +123,21 @@ public class Scale {
         return Note.fromValue(fundamental.value() + intervals[degree]);
     }
 
+    /**
+     * @param note
+     *            A note to look up in the scale
+     * @return The degree of the note in the scale, or -1 if the note is not in
+     *         the scale
+     */
+    public int degreeOf(Note note) {
+        for (int i = 0; i < size(); i++) {
+            if (note == getNote(i)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     @Override
     public String toString() {
         return "Scale [" + fundamental + " " + name + "]";
@@ -180,15 +196,16 @@ public class Scale {
     /**
      * @return A collection of every known scale.
      */
-    public static Set<Scale> createScales() {
+    public static Set<Scale> getAllScales() {
         if (scales != null) {
             return scales;
         }
 
         scales = new HashSet<>();
         for (Note note : Note.values()) {
-            for (ScaleType scaleType : scaleTypes.values()) {
-                scales.add(new Scale(note, scaleType.name, scaleType.intervals));
+            for (ScaleType scaleType : getScaleTypes().values()) {
+                scales.add(
+                        new Scale(note, scaleType.name, scaleType.intervals));
             }
         }
         return scales;
@@ -203,17 +220,21 @@ public class Scale {
         }
 
         scaleTypes = new HashMap<>();
+        //@formatter:off
         scaleTypes.put("major", new ScaleType("Major", MAJOR_SCALE));
-        scaleTypes.put("natural minor", new ScaleType("Natural Minor", NATURAL_MINOR_SCALE));
-        scaleTypes.put("harmonic minor", new ScaleType("Harmonic Minor", HARMONIC_MINOR_SCALE));
-        scaleTypes.put("melodic minor", new ScaleType("Melodic Minor", MELODIC_MINOR_SCALE));
-        scaleTypes.put("dorian", new ScaleType("Dorian", DORIAN_SCALE));
-        scaleTypes.put("lydian", new ScaleType("Lydian", LYDIAN_SCALE));
-        scaleTypes.put("mixolidyan", new ScaleType("Mixolydian", MIXOLYDIAN_SCALE));
-        scaleTypes.put("pentatonic", new ScaleType("Pentatonic", PENTATONIC_SCALE));
-        scaleTypes.put("blues", new ScaleType("Blues", BLUES_SCALE));
-        scaleTypes.put("turkish", new ScaleType("Turkish", TURKISH_SCALE));
-        scaleTypes.put("indian", new ScaleType("Indian", INDIAN_SCALE));
+        scaleTypes.put("minor", new ScaleType("Minor", MINOR_SCALE));
+        // scaleTypes.put("natural minor", new ScaleType("Natural Minor", NATURAL_MINOR_SCALE));
+        // scaleTypes.put("harmonic minor", new ScaleType("Harmonic Minor", HARMONIC_MINOR_SCALE));
+        // scaleTypes.put("melodic minor", new ScaleType("Melodic Minor", MELODIC_MINOR_SCALE));
+        // scaleTypes.put("aeolian", new ScaleType("Aeolian", AEOLIAN_SCALE));
+        // scaleTypes.put("dorian", new ScaleType("Dorian", DORIAN_SCALE));
+        // scaleTypes.put("lydian", new ScaleType("Lydian", LYDIAN_SCALE));
+        // scaleTypes.put("mixolidyan", new ScaleType("Mixolydian", MIXOLYDIAN_SCALE));
+        // scaleTypes.put("pentatonic", new ScaleType("Pentatonic", PENTATONIC_SCALE));
+        // scaleTypes.put("blues", new ScaleType("Blues", BLUES_SCALE));
+        // scaleTypes.put("turkish", new ScaleType("Turkish", TURKISH_SCALE));
+        // scaleTypes.put("indian", new ScaleType("Indian", INDIAN_SCALE));
+        //@formatter:on
         return scaleTypes;
     }
 

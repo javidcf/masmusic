@@ -7,6 +7,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 
+import uk.ac.bath.masmusic.common.Onset;
+
 /**
  * Implements the beat induction stage of BeatRoot.
  *

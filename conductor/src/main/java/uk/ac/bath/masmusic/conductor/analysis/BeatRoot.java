@@ -7,6 +7,7 @@ import java.util.PriorityQueue;
 import java.util.Queue;
 
 import uk.ac.bath.masmusic.common.Beat;
+import uk.ac.bath.masmusic.common.Onset;
 
 /**
  * BeatRoot beat detection.

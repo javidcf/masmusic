@@ -21,7 +21,7 @@ import org.springframework.integration.mqtt.support.MqttMessageConverter;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageHandler;
 
-import uk.ac.bath.masmusic.integration.ProtobufBase64MqttMessageConverter;
+import uk.ac.bath.masmusic.integration.ProtobufMqttMessageConverter;
 import uk.ac.bath.masmusic.orchestra.mas.MasMusic;
 import uk.ac.bath.masmusic.protobuf.TimePointNote;
 import uk.ac.bath.masmusic.protobuf.TimeSpanNote;
@@ -57,6 +57,8 @@ public class Orchestra implements CommandLineRunner {
     private String mqttPlayClientId;
     @Value("${mqtt.play.topic}")
     private String mqttPlayTopic;
+    @Value("${mqtt.direction.topic}")
+    private String mqttDirectionTopic;
 
     @Autowired
     private MasMusic masMusic;
@@ -96,15 +98,7 @@ public class Orchestra implements CommandLineRunner {
      * @return MQTT input channel
      */
     @Bean
-    public MessageChannel mqttInboundChannel() {
-        return new DirectChannel();
-    }
-
-    /**
-     * @return MQTT output channel
-     */
-    @Bean
-    public MessageChannel mqttOutboundChannel() {
+    public MessageChannel mqttInputChannel() {
         return new DirectChannel();
     }
 
@@ -112,64 +106,70 @@ public class Orchestra implements CommandLineRunner {
      * @return MQTT input message converter for Protocol Buffers message
      */
     @Bean
-    public MqttMessageConverter inConverter() {
-        // return new ProtobufMqttMessageConverter<TimePointNote>(
-        //        TimePointNote.class, mqttQos, mqttRetain);
-        return new ProtobufBase64MqttMessageConverter<TimePointNote>(
+    public MqttMessageConverter mqttInputConverter() {
+        return new ProtobufMqttMessageConverter<TimePointNote>(
                 TimePointNote.class, mqttQos, mqttRetain);
-    }
-
-    /**
-     * @return MQTT output message converter for Protocol Buffers message
-     */
-    @Bean
-    public MqttMessageConverter outConverter() {
-        // return new ProtobufMqttMessageConverter<TimeSpanNote>(
-        //        TimeSpanNote.class, mqttQos, mqttRetain);
-        return new ProtobufBase64MqttMessageConverter<TimeSpanNote>(
-                TimeSpanNote.class, mqttQos, mqttRetain);
     }
 
     /**
      * @return MQTT message producer
      */
     @Bean
-    public MessageProducerSupport mqttInbound() {
+    public MessageProducerSupport mqttInput() {
         MqttPahoMessageDrivenChannelAdapter adapter = new MqttPahoMessageDrivenChannelAdapter(
                 mqttHearClientId, mqttClientFactory(), mqttHearTopic);
-        adapter.setConverter(inConverter());
+        adapter.setConverter(mqttInputConverter());
         adapter.setQos(mqttQos);
-        adapter.setOutputChannel(mqttInboundChannel());
+        adapter.setOutputChannel(mqttInputChannel());
         return adapter;
-    }
-
-    /**
-     * @return MQTT message deliverer
-     */
-    @Bean
-    public MessageHandler mqttOutbound() {
-        MqttPahoMessageHandler handler = new MqttPahoMessageHandler(
-                mqttPlayClientId, mqttClientFactory());
-        handler.setDefaultTopic(mqttPlayTopic);
-        handler.setDefaultQos(mqttQos);
-        handler.setConverter(outConverter());
-        return handler;
     }
 
     /**
      * @return MQTT input flow
      */
     @Bean
-    public IntegrationFlow mqttInFlow() {
-        return IntegrationFlows.from(mqttInboundChannel()).handle(masMusic)
+    public IntegrationFlow mqttInputFlow() {
+        return IntegrationFlows.from(mqttInputChannel()).handle(masMusic)
                 .get();
     }
 
+    /**
+     * @return MQTT message deliverer
+     */
     @Bean
-    public IntegrationFlow mqttOutFlow() {
-        // MessagingGateway
-        return IntegrationFlows.from(mqttOutboundChannel())
-                .handle(mqttOutbound()).get();
+    public MessageHandler mqttOutput() {
+        MqttPahoMessageHandler handler = new MqttPahoMessageHandler(
+                mqttPlayClientId, mqttClientFactory());
+        handler.setDefaultTopic(mqttPlayTopic);
+        handler.setDefaultQos(mqttQos);
+        handler.setConverter(mqttOutputConverter());
+        return handler;
+    }
+
+    /**
+     * @return MQTT output message converter for Protocol Buffers message
+     */
+    @Bean
+    public MqttMessageConverter mqttOutputConverter() {
+        return new ProtobufMqttMessageConverter<TimeSpanNote>(
+                TimeSpanNote.class, mqttQos, mqttRetain);
+    }
+
+    /**
+     * @return MQTT output channel
+     */
+    @Bean
+    public MessageChannel mqttOutputChannel() {
+        return new DirectChannel();
+    }
+
+    /**
+     * @return MQTT output flow
+     */
+    @Bean
+    public IntegrationFlow mqttOutputFlow() {
+        return IntegrationFlows.from(mqttOutputChannel())
+                .handle(mqttOutput()).get();
     }
 
 }

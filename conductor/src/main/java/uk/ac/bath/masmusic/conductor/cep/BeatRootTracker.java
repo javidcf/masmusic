@@ -2,6 +2,7 @@ package uk.ac.bath.masmusic.conductor.cep;
 
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,8 +10,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import uk.ac.bath.masmusic.common.Beat;
+import uk.ac.bath.masmusic.common.Onset;
+import uk.ac.bath.masmusic.conductor.Conductor;
 import uk.ac.bath.masmusic.conductor.analysis.BeatRoot;
-import uk.ac.bath.masmusic.conductor.analysis.Onset;
 import uk.ac.bath.masmusic.protobuf.Pitch;
 import uk.ac.bath.masmusic.protobuf.TimeSpanNote;
 
@@ -34,21 +36,18 @@ public class BeatRootTracker implements EsperStatementSubscriber {
     /** Logger */
     private static Logger LOG = LoggerFactory.getLogger(BeatRootTracker.class);
 
+    @Autowired
+    private Conductor conductor;
+
     /** BeatRoot beat tracker. */
     @Autowired
-    BeatRoot beatRoot;
+    private BeatRoot beatRoot;
 
     /** Events in the last analyzed window (sorted by time) */
-    private ArrayList<Onset> onsets = new ArrayList<>();
+    private final ArrayList<Onset> onsets;
 
-    /** Currently tracked beat duration. */
-    private int beatDuration;
-
-    /** Currently tracked phase. */
-    private int beatPhase;
-
-    /** Currently tracked tempo. */
-    private int tempo;
+    /** Currently tracked beat. */
+    private final AtomicReference<Beat> beat;
 
     /**
      * Constructor.
@@ -63,27 +62,15 @@ public class BeatRootTracker implements EsperStatementSubscriber {
         config.addPlugInSingleRowFunction("noteSalience",
                 "uk.ac.bath.masmusic.conductor.cep.BeatRootTracker",
                 "noteSalience");
+        onsets = new ArrayList<>();
+        beat = new AtomicReference<>(null);
     }
 
     /**
-     * @return The current tempo in beats per minute
+     * @return The current beat
      */
-    public synchronized int getCurrentTempo() {
-        return tempo;
-    }
-
-    /**
-     * @return The current beat duration in milliseconds
-     */
-    public synchronized int getCurrentBeatDuration() {
-        return beatDuration;
-    }
-
-    /**
-     * @return The current beat phase in milliseconds
-     */
-    public synchronized int getCurrentBeatPhase() {
-        return beatPhase;
+    public Beat getCurrentBeat() {
+        return beat.get();
     }
 
     /**
@@ -132,9 +119,9 @@ public class BeatRootTracker implements EsperStatementSubscriber {
      * Start new event delivery.
      *
      * @param countNew
-     *            Number of elements in the new delivery.
+     *            Number of elements in the new delivery
      * @param countOld
-     *            Number of elements in the previous delivery.
+     *            Number of elements in the previous delivery
      */
     public void updateStart(int countNew, int countOld) {
         onsets.clear();
@@ -157,18 +144,13 @@ public class BeatRootTracker implements EsperStatementSubscriber {
      * Finish event delivery.
      */
     public void updateEnd() {
-        Beat beat = beatRoot.estimateBeat(onsets);
+        Beat newBeat = beatRoot.estimateBeat(onsets);
         onsets.clear();
-        if (beat != null) {
-            LOG.debug("New beat: {}", beat);
-            updateBeat(beat);
+        if (newBeat != null) {
+            LOG.debug("New beat: {}", newBeat);
+            beat.set(newBeat);
+            conductor.conduct();
         }
-    }
-
-    private synchronized void updateBeat(Beat beat) {
-        this.beatDuration = beat.getDuration();
-        this.beatPhase = beat.getPhase();
-        this.tempo = beat.getTempo();
     }
 
 }

@@ -9,8 +9,8 @@ import uk.ac.bath.masmusic.protobuf.TimeSpanNote;
  *
  * @author Javier Dehesa
  */
-@MessagingGateway(defaultRequestChannel = "mqttOutboundChannel")
-public interface MusicPlayer {
+@MessagingGateway(defaultRequestChannel = "mqttOutputChannel")
+public interface MusicGateway {
 
     void play(TimeSpanNote note);
 
