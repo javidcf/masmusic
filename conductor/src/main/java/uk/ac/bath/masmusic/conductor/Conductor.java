@@ -17,7 +17,6 @@ import org.springframework.integration.mqtt.core.DefaultMqttPahoClientFactory;
 import org.springframework.integration.mqtt.core.MqttPahoClientFactory;
 import org.springframework.integration.mqtt.inbound.MqttPahoMessageDrivenChannelAdapter;
 import org.springframework.integration.mqtt.outbound.MqttPahoMessageHandler;
-import org.springframework.integration.mqtt.support.MqttMessageConverter;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageHandler;
 
@@ -178,22 +177,14 @@ public class Conductor implements CommandLineRunner {
     }
 
     /**
-     * @return MQTT message converter for input messages
-     */
-    @Bean
-    public MqttMessageConverter mqttInputConverter() {
-        return new ProtobufMqttMessageConverter<TimeSpanNote>(
-                TimeSpanNote.class, mqttQos, mqttRetain);
-    }
-
-    /**
      * @return MQTT message producer
      */
     @Bean
     public MessageProducerSupport mqttInput() {
         MqttPahoMessageDrivenChannelAdapter adapter = new MqttPahoMessageDrivenChannelAdapter(
                 mqttHearClientId, mqttClientFactory(), mqttHearTopic);
-        adapter.setConverter(mqttInputConverter());
+        adapter.setConverter(new ProtobufMqttMessageConverter(
+                TimeSpanNote.class, mqttQos, mqttRetain));
         adapter.setQos(mqttQos);
         adapter.setOutputChannel(mqttInputChannel());
         return adapter;
@@ -225,17 +216,9 @@ public class Conductor implements CommandLineRunner {
                 mqttDirectionClientId, mqttClientFactory());
         handler.setDefaultTopic(mqttDirectionTopic);
         handler.setDefaultQos(mqttQos);
-        handler.setConverter(mqttDirectionConverter());
+        handler.setConverter(new ProtobufMqttMessageConverter(
+                Direction.class, mqttQos, mqttRetain));
         return handler;
-    }
-
-    /**
-     * @return MQTT message converter for direction messages
-     */
-    @Bean
-    public MqttMessageConverter mqttDirectionConverter() {
-        return new ProtobufMqttMessageConverter<Direction>(Direction.class,
-                mqttQos, mqttRetain);
     }
 
     @Bean

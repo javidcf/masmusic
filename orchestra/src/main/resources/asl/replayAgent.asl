@@ -5,7 +5,7 @@
 
 
 /* Plans */
-+hear(PITCH, VELOCITY) <- play(PITCH).
+// +hear(PITCH, VELOCITY) <- play(PITCH).
 
 +perform(PERFORM_START, PERFORM_DURATION)
     :  beat(BEAT_DURATION, BEAT_PHASE) & scale(FUNDAMENTAL, SCALE)

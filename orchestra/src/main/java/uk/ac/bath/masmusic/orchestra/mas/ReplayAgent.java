@@ -2,6 +2,8 @@ package uk.ac.bath.masmusic.orchestra.mas;
 
 import java.util.Random;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import jason.asSemantics.ActionExec;
@@ -17,6 +19,9 @@ import uk.ac.bath.masmusic.common.Scale;
  */
 @Component
 public class ReplayAgent extends MasMusicAbstractAgent {
+
+    /** Logger */
+    private static Logger LOG = LoggerFactory.getLogger(ReplayAgent.class);
 
     /** Agent ASL source path. */
     private static final String ASL_PATH = "/asl/replayAgent.asl";
@@ -35,14 +40,6 @@ public class ReplayAgent extends MasMusicAbstractAgent {
             int pitch = Integer.parseInt(actionTerm.getTerm(0).toString());
             long timestamp = System.currentTimeMillis();
             playNote(pitch, DEFAULT_VELOCITY, timestamp, DEFAULT_DURATION);
-            playNote(pitch + 7, DEFAULT_VELOCITY, timestamp + 300,
-                    DEFAULT_DURATION);
-            playNote(pitch + 12, DEFAULT_VELOCITY, timestamp + 600,
-                    DEFAULT_DURATION);
-            playNote(pitch + 7, DEFAULT_VELOCITY, timestamp + 900,
-                    DEFAULT_DURATION);
-            playNote(pitch + 12, DEFAULT_VELOCITY, timestamp,
-                    DEFAULT_DURATION);
             return true;
         } else if (actionTerm.getFunctor().equalsIgnoreCase("compose")) {
             long start = Long.parseLong(actionTerm.getTerm(0).toString());

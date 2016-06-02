@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import jason.JasonException;
@@ -19,6 +21,7 @@ import jason.asSemantics.Circumstance;
 import jason.asSemantics.TransitionSystem;
 import jason.asSyntax.Literal;
 import jason.runtime.Settings;
+import uk.ac.bath.masmusic.common.Note;
 
 /**
  * Base class for MasMusic agents.
@@ -26,6 +29,9 @@ import jason.runtime.Settings;
  * @author Javier Dehesa
  */
 public abstract class MasMusicAbstractAgent extends AgArch {
+
+    /** Logger */
+    private static Logger LOG = LoggerFactory.getLogger(MasMusicAbstractAgent.class);
 
     /** Default note velocity. */
     public static final int DEFAULT_VELOCITY = 64;
@@ -183,21 +189,22 @@ public abstract class MasMusicAbstractAgent extends AgArch {
      *            Phase of the new beat in milliseconds
      */
     public void setBeat(int duration, int phase) {
-        currentBeat = Literal.parseLiteral(
-                String.format("%s(%d, %d)", BEAT_EVENT, duration, phase));
+        currentBeat = Literal
+                .parseLiteral(String.format("%s(%d, %d)", BEAT_EVENT, duration, phase));
     }
 
     /**
      * Inform the agent about a new scale event.
      *
      * @param fundamental
-     *            Name of the fundamental of the scale
+     *            Note number of the fundamental of the scale
      * @param type
      *            Name of the scale type
      */
-    public void setScale(String fundamental, String type) {
-        currentScale = Literal.parseLiteral(
-                String.format("%s(%s, %s)", SCALE_EVENT, fundamental, type));
+    public void setScale(int fundamental, String type) {
+        String fundamentalStr = Note.fromValue(fundamental).toString();
+        currentScale = Literal.parseLiteral(String.format("%s(%s, %s)", SCALE_EVENT,
+                fundamentalStr.toLowerCase(), type.toLowerCase()));
     }
 
     /**

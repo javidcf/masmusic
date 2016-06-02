@@ -39,6 +39,12 @@
 			<version>${protobuf.version}</version>
 		</dependency>
 
+		<!-- Reflections -->
+		<dependency>
+			<groupId>org.reflections</groupId>
+			<artifactId>reflections</artifactId>
+		</dependency>
+
 		<!-- JUnit -->
 		<dependency>
 			<groupId>junit</groupId>

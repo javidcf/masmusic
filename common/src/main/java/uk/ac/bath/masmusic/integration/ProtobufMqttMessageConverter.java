@@ -16,24 +16,23 @@ import com.google.protobuf.MessageLite;
  * @param <E>
  *            Protocol Buffers message type
  */
-public class ProtobufMqttMessageConverter<E extends MessageLite>
-        extends DefaultPahoMessageConverter {
+public class ProtobufMqttMessageConverter extends DefaultPahoMessageConverter {
 
     /** The Protocol Buffers message class */
-    private Class<E> messageClass;
+    private Class<? extends MessageLite> messageClass;
 
     /** The byte array parsing method */
     private Method parseMethod;
 
     /**
      * Construct a converter with default settings.
-     * 
+     *
      * @param messageClass
      *            The Protocol Buffers message class
-     * 
+     *
      * @see DefaultPahoMessageConverter#DefaultPahoMessageConverter()
      */
-    public ProtobufMqttMessageConverter(Class<E> messageClass) {
+    public ProtobufMqttMessageConverter(Class<? extends MessageLite> messageClass) {
         this(messageClass, 0, false);
     }
 
@@ -43,7 +42,7 @@ public class ProtobufMqttMessageConverter<E extends MessageLite>
      *
      * @see DefaultPahoMessageConverter#DefaultPahoMessageConverter(int,
      *      boolean)
-     * 
+     *
      * @param messageClass
      *            The Protocol Buffers message class
      * @param defaultQos
@@ -51,7 +50,7 @@ public class ProtobufMqttMessageConverter<E extends MessageLite>
      * @param defaultRetain
      *            Default retain policy
      */
-    public ProtobufMqttMessageConverter(Class<E> messageClass, int defaultQos,
+    public ProtobufMqttMessageConverter(Class<? extends MessageLite> messageClass, int defaultQos,
             boolean defaultRetain) {
         this(messageClass, defaultQos, defaultRetain, "UTF-8");
     }
@@ -61,13 +60,13 @@ public class ProtobufMqttMessageConverter<E extends MessageLite>
      * retain policy settings.
      *
      * @see DefaultPahoMessageConverter#DefaultPahoMessageConverter(String)
-     * 
+     *
      * @param messageClass
      *            The Protocol Buffers message class
      * @param charset
      *            The charset used in the conversion
      */
-    public ProtobufMqttMessageConverter(Class<E> messageClass, String charset) {
+    public ProtobufMqttMessageConverter(Class<? extends MessageLite> messageClass, String charset) {
         this(messageClass, 0, false, charset);
     }
 
@@ -77,7 +76,7 @@ public class ProtobufMqttMessageConverter<E extends MessageLite>
      *
      * @see DefaultPahoMessageConverter#DefaultPahoMessageConverter(int,
      *      boolean, String)
-     * 
+     *
      * @param messageClass
      *            The Protocol Buffers message class
      * @param defaultQos
@@ -87,7 +86,7 @@ public class ProtobufMqttMessageConverter<E extends MessageLite>
      * @param charset
      *            The charset used in the conversion
      */
-    public ProtobufMqttMessageConverter(Class<E> messageClass, int defaultQos,
+    public ProtobufMqttMessageConverter(Class<? extends MessageLite> messageClass, int defaultQos,
             boolean defaultRetained, String charset) {
         super(defaultQos, defaultRetained, charset);
         this.messageClass = messageClass;
@@ -105,7 +104,7 @@ public class ProtobufMqttMessageConverter<E extends MessageLite>
      * {@inheritDoc}
      */
     @Override
-    protected E mqttBytesToPayload(MqttMessage mqttMessage) throws Exception {
+    protected MessageLite mqttBytesToPayload(MqttMessage mqttMessage) throws Exception {
         Object obj = parseMethod.invoke(null, mqttMessage.getPayload());
         return messageClass.cast(obj);
     }
@@ -115,8 +114,7 @@ public class ProtobufMqttMessageConverter<E extends MessageLite>
      */
     @Override
     protected byte[] messageToMqttBytes(Message<?> message) {
-        E protobufMessage = messageClass.cast(message.getPayload());
-        return protobufMessage.toByteArray();
+        return ((MessageLite) message.getPayload()).toByteArray();
     }
 
 }
