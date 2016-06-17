@@ -22,11 +22,13 @@ import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageHandler;
 
 import uk.ac.bath.masmusic.common.Beat;
+import uk.ac.bath.masmusic.common.Rhythm;
 import uk.ac.bath.masmusic.common.Scale;
+import uk.ac.bath.masmusic.common.TimeSignature;
 import uk.ac.bath.masmusic.conductor.analysis.BeatRoot;
 import uk.ac.bath.masmusic.conductor.analysis.ScaleInducer;
-import uk.ac.bath.masmusic.conductor.cep.BeatRootTracker;
 import uk.ac.bath.masmusic.conductor.cep.EsperMessageHandler;
+import uk.ac.bath.masmusic.conductor.cep.RhythmDetector;
 import uk.ac.bath.masmusic.conductor.cep.ScaleTracker;
 import uk.ac.bath.masmusic.integration.ProtobufMqttMessageConverter;
 import uk.ac.bath.masmusic.protobuf.Direction;
@@ -73,7 +75,7 @@ public class Conductor implements CommandLineRunner {
     private EsperMessageHandler messageHandler;
 
     @Autowired
-    private BeatRootTracker beatTracker;
+    private RhythmDetector rhythmDetector;
 
     @Autowired
     private ScaleTracker scaleTracker;
@@ -87,15 +89,27 @@ public class Conductor implements CommandLineRunner {
     private final Direction.Builder directionBuilder = Direction.newBuilder();
 
     /**
+     * Builder of {@link Scale} messages.
+     */
+    private final uk.ac.bath.masmusic.protobuf.Scale.Builder scaleBuilder = uk.ac.bath.masmusic.protobuf.Scale
+            .newBuilder();
+
+    /**
      * Builder of {@link Beat} messages.
      */
     private final uk.ac.bath.masmusic.protobuf.Beat.Builder beatBuilder = uk.ac.bath.masmusic.protobuf.Beat
             .newBuilder();
 
     /**
-     * Builder of {@link Scale} messages.
+     * Builder of {@link TimeSignature} messages.
      */
-    private final uk.ac.bath.masmusic.protobuf.Scale.Builder scaleBuilder = uk.ac.bath.masmusic.protobuf.Scale
+    private final uk.ac.bath.masmusic.protobuf.TimeSignature.Builder timeSignatureBuilder = uk.ac.bath.masmusic.protobuf.TimeSignature
+            .newBuilder();
+
+    /**
+     * Builder of {@link Rhythm} messages.
+     */
+    private final uk.ac.bath.masmusic.protobuf.Rhythm.Builder rhythmBuilder = uk.ac.bath.masmusic.protobuf.Rhythm
             .newBuilder();
 
     /**
@@ -121,13 +135,21 @@ public class Conductor implements CommandLineRunner {
      * Send directions with the most recent information.
      */
     public synchronized void conduct() {
-        Beat beat = beatTracker.getCurrentBeat();
+        Rhythm rhythm = rhythmDetector.getDetectedRhtyhm();
         Scale scale = scaleTracker.getCurrentScale();
-        if (beat != null) {
-            directionBuilder.setBeat(beatBuilder.setDuration(beat.getDuration())
-                    .setPhase(beat.getPhase()));
+        if (rhythm != null) {
+            Beat beat = rhythm.getBeat();
+            TimeSignature timeSignature = rhythm.getTimeSignature();
+            directionBuilder.setRhythm(rhythmBuilder
+                    .setBeat(beatBuilder
+                            .setDuration(beat.getDuration())
+                            .setPhase(beat.getPhase()))
+                    .setTimeSignature(timeSignatureBuilder
+                            .setBeats(timeSignature.getBeats())
+                            .setUnit(timeSignature.getUnit()))
+                    .setBeatOffset(rhythm.getBeatOffset()));
         } else {
-            directionBuilder.clearBeat();
+            directionBuilder.clearRhythm();
         }
         if (scale != null) {
             uk.ac.bath.masmusic.protobuf.Note fundamental = uk.ac.bath.masmusic.protobuf.Note

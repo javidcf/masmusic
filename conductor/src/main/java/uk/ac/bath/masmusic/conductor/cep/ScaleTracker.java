@@ -22,7 +22,7 @@ import uk.ac.bath.masmusic.protobuf.TimeSpanNote;
  * @author Javier Dehesa
  */
 @Component
-public class ScaleTracker implements EsperStatementSubscriber {
+public class ScaleTracker extends EsperStatementSubscriber {
 
     /** Quantization step size (ms) */
     private static final int QUANTIZATION = 40;  // TODO Use this?
@@ -63,7 +63,7 @@ public class ScaleTracker implements EsperStatementSubscriber {
      * {@inheritDoc}
      */
     @Override
-    public String getStatement() {
+    public String getStatementQuery() {
         return "select"
                 // + " Math.round(avg(timestamp)) as timestamp"
                 + " timestamp"

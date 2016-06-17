@@ -45,6 +45,8 @@ public abstract class MasMusicAbstractAgent extends AgArch {
     /** Event for scale. */
     public static final String SCALE_EVENT = "scale";
 
+    private static final String RHYTHM_EVENT = "rhythm";
+
     /** MasMusic multi-agent system. */
     @Autowired
     private MasMusic masMusic;
@@ -55,8 +57,8 @@ public abstract class MasMusicAbstractAgent extends AgArch {
     /** Agent instructions literals queue. */
     private final List<Literal> instructions;
 
-    /** Currently perceived beat literal. */
-    private Literal currentBeat;
+    /** Currently perceived rhythm literal. */
+    private Literal currentRhythm;
 
     /** Currently perceived scale literal. */
     private Literal currentScale;
@@ -67,7 +69,7 @@ public abstract class MasMusicAbstractAgent extends AgArch {
     public MasMusicAbstractAgent() {
         heard = new ConcurrentLinkedQueue<Literal>();
         instructions = Collections.synchronizedList(new ArrayList<>());
-        currentBeat = null;
+        currentRhythm = null;
         currentScale = null;
         percepts = new ArrayList<>();
     }
@@ -97,8 +99,8 @@ public abstract class MasMusicAbstractAgent extends AgArch {
     public List<Literal> perceive() {
         super.perceive();
         percepts.clear();
-        if (currentBeat != null) {
-            percepts.add(currentBeat);
+        if (currentRhythm != null) {
+            percepts.add(currentRhythm);
         }
         if (currentScale != null) {
             percepts.add(currentScale);
@@ -175,16 +177,26 @@ public abstract class MasMusicAbstractAgent extends AgArch {
     }
 
     /**
-     * Inform the agent about a new beat event.
+     * Inform the agent about a new rhythm direction.
      *
-     * @param duration
-     *            Duration of the new beat in milliseconds
-     * @param phase
-     *            Phase of the new beat in milliseconds
+     * @param beatDuration
+     *            Duration of the rhythm beat
+     * @param beatPhase
+     *            Phase of the rhythm beat
+     * @param barBeats
+     *            Number of beats in a bar
+     * @param barUnit
+     *            Units of the beats in a bar (1 = whole, 2 = half, 4 = quarter,
+     *            etc.)
+     * @param barBeatOffset
+     *            Distance between the first beat and the first bar
      */
-    public void setBeat(int duration, int phase) {
-        currentBeat = Literal.parseLiteral(
-                String.format("%s(%d, %d)", BEAT_EVENT, duration, phase));
+    public void setRhythm(int beatDuration, int beatPhase, int barBeats,
+            int barUnit, int barBeatOffset) {
+        currentRhythm = Literal.parseLiteral(
+                String.format("%s(%d, %d, %d, %d, %d)", RHYTHM_EVENT,
+                        beatDuration, beatPhase, barBeats, barUnit,
+                        barBeatOffset));
     }
 
     /**

@@ -35,8 +35,12 @@ public class Beat implements Cloneable {
      *            Timestamp of a beat
      */
     public Beat(int duration, long timestamp) {
-        setDuration(duration);
-        setPhase(timestamp);
+        if (duration <= 1) {
+            throw new IllegalArgumentException(
+                    "The duration must be greater than 1");
+        }
+        this.duration = duration;
+        this.phase = (int) Math.floorMod(timestamp, this.duration);
     }
 
     /**
@@ -47,30 +51,10 @@ public class Beat implements Cloneable {
     }
 
     /**
-     * @param duration
-     *            New beat duration in milliseconds
-     */
-    public void setDuration(int duration) {
-        if (duration <= 1) {
-            throw new IllegalArgumentException("The duration must be greater than 1");
-        }
-        this.duration = duration;
-        setPhase(this.phase);
-    }
-
-    /**
      * @return Beat time phase in milliseconds
      */
     public int getPhase() {
         return phase;
-    }
-
-    /**
-     * @param timestamp
-     *            Timestamp of a beat in the new phase
-     */
-    public void setPhase(long timestamp) {
-        this.phase = (int) Math.floorMod(timestamp, this.duration);
     }
 
     /**
@@ -81,14 +65,25 @@ public class Beat implements Cloneable {
     }
 
     /**
-     * @param tempo
-     *            New beat tempo, in beats per minute
+     * Get the number of the beat at the given timestamp.
+     *
+     * @param timestamp
+     *            Time at which the beat number is computed.
+     * @return The beat number at the given timestamp
      */
-    public void setTempo(int tempo) {
-        if (tempo <= 0) {
-            throw new IllegalArgumentException("The tempo must be greater than 0");
-        }
-        setDuration(Math.round(((float) 60000) / tempo));
+    public long beatNumber(long timestamp) {
+        return (timestamp - phase) / duration;
+    }
+
+    /**
+     * Get the time of a beat given by its number.
+     *
+     * @param beatNumber
+     *            The beat number
+     * @return The timestamp of the given beat number
+     */
+    public long byNumber(long beatNumber) {
+        return beatNumber * duration + phase;
     }
 
     /**
@@ -101,7 +96,7 @@ public class Beat implements Cloneable {
      * @return The last beat that happened at the given timestamp
      */
     public long currentBeat(long timestamp) {
-        return ((timestamp - phase) / duration) * duration + phase;
+        return byNumber(beatNumber(timestamp));
     }
 
     /**
@@ -139,7 +134,8 @@ public class Beat implements Cloneable {
 
     @Override
     public String toString() {
-        return "Beat [tempo=" + getTempo() + ", duration=" + duration + ", phase=" + phase + "]";
+        return "Beat [tempo=" + getTempo() + ", duration=" + duration
+                + ", phase=" + phase + "]";
     }
 
     @Override

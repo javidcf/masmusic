@@ -18,7 +18,7 @@ import uk.ac.bath.masmusic.protobuf.TimePointNote;
  * @author Javier Dehesa
  */
 // @Component
-public class BeatTracker implements EsperStatementSubscriber {
+public class BeatTracker extends EsperStatementSubscriber {
 
     /** Default initial beat value */
     private static final int DEFAULT_BEAT = 60;
@@ -66,7 +66,8 @@ public class BeatTracker implements EsperStatementSubscriber {
      */
     @Autowired
     public BeatTracker(com.espertech.esper.client.Configuration config) {
-        config.addPlugInSingleRowFunction("noteImportance", "uk.ac.bath.masmusic.conductor.cep.BeatTracker",
+        config.addPlugInSingleRowFunction("noteImportance",
+                "uk.ac.bath.masmusic.conductor.cep.BeatTracker",
                 "noteImportance");
     }
 
@@ -112,7 +113,8 @@ public class BeatTracker implements EsperStatementSubscriber {
 
         LOG.debug("New beat: {} (score: {})", estimatedBeat, estimationScore);
         beat.set(estimatedBeat);
-        reference.set(estimatedReference % (Math.round(((float) MINUTE) / estimatedBeat)));
+        reference.set(estimatedReference
+                % (Math.round(((float) MINUTE) / estimatedBeat)));
     }
 
     /**
@@ -131,7 +133,8 @@ public class BeatTracker implements EsperStatementSubscriber {
 
         // Find the beat timestamp before the first timestamp
         long referenceOffset = referenceTimestamp % beatDuration;
-        long firstTimestampRef = readings.get(0).timestamp + beatThreshold - referenceOffset;
+        long firstTimestampRef = readings.get(0).timestamp + beatThreshold
+                - referenceOffset;
         long startBeatIdx = firstTimestampRef / beatDuration;
         long beatTimestamp = startBeatIdx * beatDuration + referenceOffset;
 
@@ -185,7 +188,8 @@ public class BeatTracker implements EsperStatementSubscriber {
         }
 
         // long windowSize = ANALYSIS_WINDOW;
-        long windowSize = readings.get(readings.size() - 1).timestamp - readings.get(0).timestamp;
+        long windowSize = readings.get(readings.size() - 1).timestamp
+                - readings.get(0).timestamp;
         double numBeats = ((double) windowSize) / beatDuration;
         double hitRate = hits / numBeats;
         return score * hitRate;
@@ -205,7 +209,8 @@ public class BeatTracker implements EsperStatementSubscriber {
     public static double noteImportance(TimePointNote note) {
         Pitch pitch = note.getPitch();
         int semitone = pitch.getNote().getNumber();
-        int absolutePitch = Math.min(Math.max(semitone + 12 * (pitch.getOctave() + 1), 0), 128);
+        int absolutePitch = Math
+                .min(Math.max(semitone + 12 * (pitch.getOctave() + 1), 0), 128);
         int velocity = Math.min(Math.max(note.getVelocity(), 0), 128);
         double importance = velocity / (absolutePitch + 1.0);
         return importance;
@@ -243,7 +248,8 @@ public class BeatTracker implements EsperStatementSubscriber {
                 return false;
             }
             NoteReading other = (NoteReading) obj;
-            if (Double.doubleToLongBits(importance) != Double.doubleToLongBits(other.importance)) {
+            if (Double.doubleToLongBits(importance) != Double
+                    .doubleToLongBits(other.importance)) {
                 return false;
             }
             if (timestamp != other.timestamp) {
@@ -254,12 +260,14 @@ public class BeatTracker implements EsperStatementSubscriber {
 
         @Override
         public int compareTo(NoteReading o) {
-            return this.importance < o.importance ? -1 : this.importance > o.importance ? 1 : 0;
+            return this.importance < o.importance ? -1
+                    : this.importance > o.importance ? 1 : 0;
         }
 
         @Override
         public String toString() {
-            return "NoteReading [timestamp=" + timestamp + ", importance=" + importance + "]";
+            return "NoteReading [timestamp=" + timestamp + ", importance="
+                    + importance + "]";
         }
     }
 
@@ -269,10 +277,13 @@ public class BeatTracker implements EsperStatementSubscriber {
      * {@inheritDoc}
      */
     @Override
-    public String getStatement() {
-        return "select" + " Math.round(avg(timestamp)) as timestamp" + ", noteImportance(*) as importance"
-                + " from TimePointNote.win:time(" + ANALYSIS_WINDOW + " msec) " + " group by Math.round(timestamp / "
-                + QUANTIZATION + ")" + " output snapshot every " + ANALYSIS_FREQUENCY + " msec";
+    public String getStatementQuery() {
+        return "select" + " Math.round(avg(timestamp)) as timestamp"
+                + ", noteImportance(*) as importance"
+                + " from TimePointNote.win:time(" + ANALYSIS_WINDOW + " msec) "
+                + " group by Math.round(timestamp / "
+                + QUANTIZATION + ")" + " output snapshot every "
+                + ANALYSIS_FREQUENCY + " msec";
     }
 
     /**

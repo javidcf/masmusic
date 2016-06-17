@@ -8,7 +8,9 @@ import jason.asSemantics.ActionExec;
 import jason.asSyntax.Structure;
 import uk.ac.bath.masmusic.common.Beat;
 import uk.ac.bath.masmusic.common.Note;
+import uk.ac.bath.masmusic.common.Rhythm;
 import uk.ac.bath.masmusic.common.Scale;
+import uk.ac.bath.masmusic.common.TimeSignature;
 
 /**
  * An agent that replays the received notes.
@@ -50,19 +52,26 @@ public class ReplayAgent extends MasMusicAbstractAgent {
             int beatDuration = Integer
                     .parseInt(actionTerm.getTerm(2).toString());
             int beatPhase = Integer.parseInt(actionTerm.getTerm(3).toString());
-            String fundamental = actionTerm.getTerm(4).toString();
-            String scaleName = actionTerm.getTerm(5).toString();
-            Beat beat = new Beat(beatDuration, beatPhase);
+            int barBeats = Integer.parseInt(actionTerm.getTerm(4).toString());
+            int barUnit = Integer.parseInt(actionTerm.getTerm(5).toString());
+            int barBeatOffset = Integer
+                    .parseInt(actionTerm.getTerm(6).toString());
+            String fundamental = actionTerm.getTerm(7).toString();
+            String scaleName = actionTerm.getTerm(8).toString();
+            Rhythm rhythm = new Rhythm(new Beat(beatDuration, beatPhase),
+                    new TimeSignature(barBeats, barUnit), barBeatOffset);
             Scale scale = new Scale(Note.fromString(fundamental), scaleName);
-            compose(start, duration, beat, scale);
+            compose(start, duration, rhythm, scale);
             return true;
         } else {
             return false;
         }
     }
 
-    private void compose(long start, long duration, Beat beat, Scale scale) {
+    private void compose(long start, long duration, Rhythm rhythm,
+            Scale scale) {
         // Come up with some random melody
+        Beat beat = rhythm.getBeat();
         long end = start + duration;
         long currentBeat = beat.nextBeat(start);
         long lastBeat = beat.currentBeat(end);

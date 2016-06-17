@@ -96,7 +96,7 @@ public class MasMusic implements MessageHandler, Runnable {
         // TEST
         for (MasMusicAbstractAgent agent : agents) {
             if (first) {
-                agent.setBeat(500, 0);  // 120 bpm
+                agent.setRhythm(500, 0, 4, 4, 0);  // 120 bpm
                 agent.setScale("c", "major");
                 agent.perform(System.currentTimeMillis() + 500, 20000);
                 first = false;

@@ -53,19 +53,32 @@ message TimeSpanNote
     optional uint32 duration = 4;  // Note duration
 }
 
-message Beat
-{
-    optional int32 duration = 1;  // Beat duration (ms)
-    optional int32 phase = 2;     // Beat phase (ms)
-}
-
 message Scale
 {
     optional Note fundamental = 1;  // Scale fundamental
     optional string type = 2;       // Scale type name
 }
 
+message Beat
+{
+    optional int32 duration = 1;  // Beat duration (ms)
+    optional int32 phase = 2;     // Beat phase (ms)
+}
+
+message TimeSignature
+{
+    optional int32 beats = 1;  // Number of beats in a bar
+    optional int32 unit = 2;   // Beat unit (1 = whole, 2 = half, 4 = quarter, etc)
+}
+
+message Rhythm 
+{
+    optional Beat beat = 1;  // Rhythm beat
+    optional TimeSignature timeSignature = 2;  // Rhythm time signature
+    optional int32 beatOffset = 3;  // Distance between first beat and first bar
+}
+
 message Direction {
-    optional Beat beat = 1;
+    optional Rhythm rhythm = 1;
     optional Scale scale = 2;
 }

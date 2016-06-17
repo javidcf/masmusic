@@ -21,6 +21,10 @@ public class ScaleInducer {
      * @return The induced scale
      */
     public Scale induceScale(List<Note> notes) {
+        // Induce scale with a significant amount of notes
+        if (notes.size() < 20) {
+            return null;
+        }
         Set<Scale> allScales = Scale.getAllScales();
         Scale bestScale = null;
         int bestScore = Integer.MIN_VALUE;

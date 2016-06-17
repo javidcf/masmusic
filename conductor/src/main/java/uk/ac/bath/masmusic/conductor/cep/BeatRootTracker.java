@@ -7,7 +7,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import uk.ac.bath.masmusic.common.Beat;
 import uk.ac.bath.masmusic.common.Onset;
@@ -21,8 +20,8 @@ import uk.ac.bath.masmusic.protobuf.TimeSpanNote;
  *
  * @author Javier Dehesa
  */
-@Component
-public class BeatRootTracker implements EsperStatementSubscriber {
+//@Component
+public class BeatRootTracker extends EsperStatementSubscriber {
 
     /** Quantization step size (ms) */
     private static final int QUANTIZATION = 40;  // TODO Use this?
@@ -104,7 +103,7 @@ public class BeatRootTracker implements EsperStatementSubscriber {
      * {@inheritDoc}
      */
     @Override
-    public String getStatement() {
+    public String getStatementQuery() {
         return "select"
                 // + " Math.round(avg(timestamp)) as timestamp"
                 + " timestamp"

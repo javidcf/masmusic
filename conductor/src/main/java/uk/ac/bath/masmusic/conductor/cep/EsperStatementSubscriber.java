@@ -1,5 +1,7 @@
 package uk.ac.bath.masmusic.conductor.cep;
 
+import com.espertech.esper.client.EPStatement;
+
 /**
  * Common interface for Esper subscribers that provide a custom query.
  *
@@ -9,12 +11,22 @@ package uk.ac.bath.masmusic.conductor.cep;
  *
  * @author Javier Dehesa
  */
-public interface EsperStatementSubscriber {
+public abstract class EsperStatementSubscriber {
+
+    private EPStatement statement;
+
+    public void setStatement(EPStatement statement) {
+        this.statement = statement;
+    }
+
+    public EPStatement getStatement() {
+        return statement;
+    }
 
     /**
-     * Get the EPL statement the subscriber will listen to.
+     * Get the EPL statement query the subscriber will listen to.
      *
-     * @return The EPL statement
+     * @return The EPL statement query
      */
-    public String getStatement();
+    public abstract String getStatementQuery();
 }

@@ -47,8 +47,9 @@ public class EsperConfiguration {
         // Add statements and listeners
         for (EsperStatementSubscriber subscriber : subscribers) {
             EPStatement statement = provider.getEPAdministrator()
-                    .createEPL(subscriber.getStatement());
+                    .createEPL(subscriber.getStatementQuery());
             statement.setSubscriber(subscriber);
+            subscriber.setStatement(statement);
         }
         return provider;
     }
