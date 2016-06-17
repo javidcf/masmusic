@@ -2,6 +2,8 @@ package uk.ac.bath.masmusic.orchestra.mas;
 
 import java.util.Random;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import jason.asSemantics.ActionExec;
@@ -20,6 +22,9 @@ import uk.ac.bath.masmusic.common.TimeSignature;
 @Component
 public class ReplayAgent extends MasMusicAbstractAgent {
 
+    /** Logger */
+    private static Logger LOG = LoggerFactory.getLogger(ReplayAgent.class);
+
     /** Agent ASL source path. */
     private static final String ASL_PATH = "/asl/replayAgent.asl";
 
@@ -37,18 +42,24 @@ public class ReplayAgent extends MasMusicAbstractAgent {
             int pitch = Integer.parseInt(actionTerm.getTerm(0).toString());
             long timestamp = System.currentTimeMillis();
             playNote(pitch, DEFAULT_VELOCITY, timestamp, DEFAULT_DURATION);
-            playNote(pitch + 7, DEFAULT_VELOCITY, timestamp + 300,
-                    DEFAULT_DURATION);
-            playNote(pitch + 12, DEFAULT_VELOCITY, timestamp + 600,
-                    DEFAULT_DURATION);
-            playNote(pitch + 7, DEFAULT_VELOCITY, timestamp + 900,
-                    DEFAULT_DURATION);
-            playNote(pitch + 12, DEFAULT_VELOCITY, timestamp,
-                    DEFAULT_DURATION);
+            return true;
+        } else if (actionTerm.getFunctor().equalsIgnoreCase("metronome")) {
+            long start = System.currentTimeMillis();
+            int bars = Integer.parseInt(actionTerm.getTerm(0).toString());
+            int beatDuration = Integer
+                    .parseInt(actionTerm.getTerm(1).toString());
+            int beatPhase = Integer.parseInt(actionTerm.getTerm(2).toString());
+            int barBeats = Integer.parseInt(actionTerm.getTerm(3).toString());
+            int barUnit = Integer.parseInt(actionTerm.getTerm(4).toString());
+            int barBeatOffset = Integer
+                    .parseInt(actionTerm.getTerm(5).toString());
+            Rhythm rhythm = new Rhythm(new Beat(beatDuration, beatPhase),
+                    new TimeSignature(barBeats, barUnit), barBeatOffset);
+            metronome(start, bars, rhythm);
             return true;
         } else if (actionTerm.getFunctor().equalsIgnoreCase("compose")) {
             long start = Long.parseLong(actionTerm.getTerm(0).toString());
-            long duration = Long.parseLong(actionTerm.getTerm(1).toString());
+            int bars = Integer.parseInt(actionTerm.getTerm(1).toString());
             int beatDuration = Integer
                     .parseInt(actionTerm.getTerm(2).toString());
             int beatPhase = Integer.parseInt(actionTerm.getTerm(3).toString());
@@ -56,25 +67,44 @@ public class ReplayAgent extends MasMusicAbstractAgent {
             int barUnit = Integer.parseInt(actionTerm.getTerm(5).toString());
             int barBeatOffset = Integer
                     .parseInt(actionTerm.getTerm(6).toString());
-            String fundamental = actionTerm.getTerm(7).toString();
+            int fundamental = Integer
+                    .parseInt(actionTerm.getTerm(7).toString());
             String scaleName = actionTerm.getTerm(8).toString();
             Rhythm rhythm = new Rhythm(new Beat(beatDuration, beatPhase),
                     new TimeSignature(barBeats, barUnit), barBeatOffset);
-            Scale scale = new Scale(Note.fromString(fundamental), scaleName);
-            compose(start, duration, rhythm, scale);
+            Scale scale = new Scale(Note.fromValue(fundamental), scaleName);
+            compose(start, bars, rhythm, scale);
             return true;
         } else {
             return false;
         }
     }
 
-    private void compose(long start, long duration, Rhythm rhythm,
-            Scale scale) {
+    private void metronome(long start, int bars, Rhythm rhythm) {
+        // Emit notes like displaying the bars structure
+        long currentBeat = rhythm.nextBar(start);
+        Beat beat = rhythm.getBeat();
+        int beatDuration = beat.getDuration();
+        int fundamentalPitch = 60;
+        int fifthPitch = fundamentalPitch + 7;
+        for (int iBar = 0; iBar < bars; iBar++) {
+            playNote(fundamentalPitch, DEFAULT_VELOCITY, currentBeat,
+                    beatDuration);
+            currentBeat = beat.nextBeat(currentBeat);
+            for (int iBeat = 1; iBeat < rhythm.getTimeSignature()
+                    .getBeats(); iBeat++) {
+                playNote(fifthPitch, DEFAULT_VELOCITY, currentBeat,
+                        beatDuration);
+                currentBeat = beat.nextBeat(currentBeat);
+            }
+        }
+    }
+
+    private void compose(long start, int bars, Rhythm rhythm, Scale scale) {
         // Come up with some random melody
         Beat beat = rhythm.getBeat();
-        long end = start + duration;
-        long currentBeat = beat.nextBeat(start);
-        long lastBeat = beat.currentBeat(end);
+        long currentBeat = rhythm.nextBar(start);
+        long lastBeat = rhythm.nextBar(start, bars);
         long currentTimestamp = currentBeat;
         // Middle fundamental
         int basePitch = 60 + scale.getFundamental().value();

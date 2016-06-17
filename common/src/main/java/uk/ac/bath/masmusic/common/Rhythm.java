@@ -86,7 +86,7 @@ public class Rhythm {
     }
 
     /**
-     * Get the timestamp of the next bar that will after at the given time.
+     * Get the timestamp of the next bar after at the given time.
      *
      * The returned timestamp is always posterior to the given one.
      *
@@ -96,8 +96,25 @@ public class Rhythm {
      *         time
      */
     public long nextBar(long timestamp) {
+        return nextBar(timestamp, 0);
+    }
+
+    /**
+     * Get the timestamp of the next bars after the given time.
+     *
+     * The returned timestamp is always posterior to the given one.
+     *
+     * @param timestamp
+     *            Time at which the next bar time is computed
+     * @param bars
+     *            Number of bars. With 0, the first bar after the given
+     *            timestamp is returned.
+     * @return The timestamp of the next bar that will happen after the given
+     *         time and number of bars
+     */
+    public long nextBar(long timestamp, int bars) {
         return currentBar(timestamp)
-                + beat.getDuration() * timeSignature.getBeats();
+                + (bars + 1) * beat.getDuration() * timeSignature.getBeats();
     }
 
     /**

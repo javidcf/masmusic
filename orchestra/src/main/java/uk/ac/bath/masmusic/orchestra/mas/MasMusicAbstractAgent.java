@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import jason.JasonException;
@@ -26,6 +28,10 @@ import jason.runtime.Settings;
  * @author Javier Dehesa
  */
 public abstract class MasMusicAbstractAgent extends AgArch {
+
+    /** Logger */
+    private static Logger LOG = LoggerFactory
+            .getLogger(MasMusicAbstractAgent.class);
 
     /** Default note velocity. */
     public static final int DEFAULT_VELOCITY = 64;
@@ -161,35 +167,26 @@ public abstract class MasMusicAbstractAgent extends AgArch {
     }
 
     /**
-     * Instruct the agent to perform in a time span.
+     * Instruct the agent to perform.
      *
      * @param start
-     *            Timestamp of the beginning of the performance time span in
-     *            milliseconds
-     * @param duration
-     *            Duration of the performance time span in milliseconds
+     *            Timestamp of the beginning of the performance in milliseconds
+     * @param bars
+     *            Duration of the performance in bars
      */
-    public void perform(long start, long duration) {
+    public void perform(long start, long bars) {
         Literal literal = Literal.parseLiteral(
-                String.format("%s(%d, %d)", PERFORM_EVENT, start,
-                        duration));
+                String.format("%s(%d, %d)", PERFORM_EVENT, start, bars));
         instructions.add(literal);
     }
 
     /**
-     * Inform the agent about a new rhythm direction.
+     * Inform the agent about a new beat event.
      *
-     * @param beatDuration
-     *            Duration of the rhythm beat
-     * @param beatPhase
-     *            Phase of the rhythm beat
-     * @param barBeats
-     *            Number of beats in a bar
-     * @param barUnit
-     *            Units of the beats in a bar (1 = whole, 2 = half, 4 = quarter,
-     *            etc.)
-     * @param barBeatOffset
-     *            Distance between the first beat and the first bar
+     * @param duration
+     *            Duration of the new beat in milliseconds
+     * @param phase
+     *            Phase of the new beat in milliseconds
      */
     public void setRhythm(int beatDuration, int beatPhase, int barBeats,
             int barUnit, int barBeatOffset) {
@@ -203,13 +200,17 @@ public abstract class MasMusicAbstractAgent extends AgArch {
      * Inform the agent about a new scale event.
      *
      * @param fundamental
-     *            Name of the fundamental of the scale
+     *            Note number of the fundamental of the scale
      * @param type
      *            Name of the scale type
      */
-    public void setScale(String fundamental, String type) {
-        currentScale = Literal.parseLiteral(
-                String.format("%s(%s, %s)", SCALE_EVENT, fundamental, type));
+    public void setScale(int fundamental, String type) {
+        if (type.isEmpty()) {
+            throw new IllegalArgumentException("Scale type cannot be empty");
+        }
+        currentScale = Literal
+                .parseLiteral(String.format("%s(%d, %s)", SCALE_EVENT,
+                        fundamental, type.toLowerCase()));
     }
 
     /**

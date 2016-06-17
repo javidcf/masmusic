@@ -5,6 +5,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.PostConstruct;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHandler;
@@ -12,8 +14,10 @@ import org.springframework.messaging.MessagingException;
 import org.springframework.stereotype.Component;
 
 import uk.ac.bath.masmusic.orchestra.MusicGateway;
+import uk.ac.bath.masmusic.protobuf.Direction;
 import uk.ac.bath.masmusic.protobuf.Note;
 import uk.ac.bath.masmusic.protobuf.Pitch;
+import uk.ac.bath.masmusic.protobuf.TimePointNote;
 import uk.ac.bath.masmusic.protobuf.TimeSpanNote;
 
 /**
@@ -23,6 +27,9 @@ import uk.ac.bath.masmusic.protobuf.TimeSpanNote;
  */
 @Component
 public class MasMusic implements MessageHandler, Runnable {
+
+    /** Logger */
+    private static Logger LOG = LoggerFactory.getLogger(MasMusic.class);
 
     /** MasMusic agents. */
     @Autowired
@@ -89,27 +96,24 @@ public class MasMusic implements MessageHandler, Runnable {
         }
     }
 
-    private static boolean first = true;
-
     @Override
     public void handleMessage(Message<?> message) throws MessagingException {
-        // TEST
-        for (MasMusicAbstractAgent agent : agents) {
-            if (first) {
-                agent.setRhythm(500, 0, 4, 4, 0);  // 120 bpm
-                agent.setScale("c", "major");
-                agent.perform(System.currentTimeMillis() + 500, 20000);
-                first = false;
-            }
-        }
-        // TEST
-
-        /*
         Object payload = message.getPayload();
-        if (!(payload instanceof TimePointNote)) {
-            return;
+        if (payload instanceof TimePointNote) {
+            handleNoteMessage((TimePointNote) payload);
+        } else if (payload instanceof Direction) {
+            handleDirectionMessage((Direction) payload);
         }
-        TimePointNote note = (TimePointNote) payload;
+
+    }
+
+    /**
+     * Handle a new note message.
+     *
+     * @param note
+     *            Received note message
+     */
+    private void handleNoteMessage(TimePointNote note) {
         int octave = note.getPitch().getOctave();
         int baseNoteValue = note.getPitch().getNote().getNumber();
         int pitchValue = (octave + 1) * 12 + baseNoteValue;
@@ -118,7 +122,43 @@ public class MasMusic implements MessageHandler, Runnable {
         for (MasMusicAbstractAgent agent : agents) {
             agent.hear(pitchValue, velocity, timestamp);
         }
-        */
+    }
+
+    /**
+     * Handler new direction message.
+     *
+     * @param direction
+     *            Received direction message
+     */
+    private void handleDirectionMessage(Direction direction) {
+        if (direction.getScale().isInitialized()
+                && !direction.getScale().getType().isEmpty()) {
+            int scaleFundamental = direction.getScale().getFundamental()
+                    .getNumber();
+            String scaleType = direction.getScale().getType();
+            for (MasMusicAbstractAgent agent : agents) {
+                agent.setScale(scaleFundamental, scaleType);
+            }
+        }
+        if (direction.getRhythm().isInitialized()) {
+            int beatDuration = direction.getRhythm().getBeat().getDuration();
+            int beatPhase = direction.getRhythm().getBeat().getPhase();
+            int barBeats = direction.getRhythm().getTimeSignature().getBeats();
+            int barUnit = direction.getRhythm().getTimeSignature().getUnit();
+            int barBeatOffset = direction.getRhythm().getBeatOffset();
+            for (MasMusicAbstractAgent agent : agents) {
+                agent.setRhythm(beatDuration, beatPhase, barBeats, barUnit,
+                        barBeatOffset);
+            }
+        }
+        if (direction.getScale().isInitialized()
+                && direction.getRhythm().isInitialized()) {
+            // TODO Example performance instruction
+            for (MasMusicAbstractAgent agent : agents) {
+                // agent.perform(System.currentTimeMillis(), 4);
+            }
+        }
+
     }
 
     /**

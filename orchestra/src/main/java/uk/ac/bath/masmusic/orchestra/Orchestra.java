@@ -17,12 +17,12 @@ import org.springframework.integration.mqtt.core.DefaultMqttPahoClientFactory;
 import org.springframework.integration.mqtt.core.MqttPahoClientFactory;
 import org.springframework.integration.mqtt.inbound.MqttPahoMessageDrivenChannelAdapter;
 import org.springframework.integration.mqtt.outbound.MqttPahoMessageHandler;
-import org.springframework.integration.mqtt.support.MqttMessageConverter;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageHandler;
 
 import uk.ac.bath.masmusic.integration.ProtobufMqttMessageConverter;
 import uk.ac.bath.masmusic.orchestra.mas.MasMusic;
+import uk.ac.bath.masmusic.protobuf.Direction;
 import uk.ac.bath.masmusic.protobuf.TimePointNote;
 import uk.ac.bath.masmusic.protobuf.TimeSpanNote;
 
@@ -33,7 +33,7 @@ import uk.ac.bath.masmusic.protobuf.TimeSpanNote;
  */
 @SpringBootApplication
 @IntegrationComponentScan
-// @EnableIntegration  // Is this necessary?
+// @EnableIntegration // Is this necessary?
 public class Orchestra implements CommandLineRunner {
 
     /** Logger */
@@ -57,6 +57,8 @@ public class Orchestra implements CommandLineRunner {
     private String mqttPlayClientId;
     @Value("${mqtt.play.topic}")
     private String mqttPlayTopic;
+    @Value("${mqtt.direction.client.id}")
+    private String mqttDirectionClientId;
     @Value("${mqtt.direction.topic}")
     private String mqttDirectionTopic;
 
@@ -68,7 +70,7 @@ public class Orchestra implements CommandLineRunner {
      */
     @Override
     public void run(String... args) {
-        LOG.info("Conductor started, press Ctrl+C to finish...");
+        LOG.info("Orchestra started, press Ctrl+C to finish...");
     }
 
     /**
@@ -103,22 +105,14 @@ public class Orchestra implements CommandLineRunner {
     }
 
     /**
-     * @return MQTT input message converter for Protocol Buffers message
-     */
-    @Bean
-    public MqttMessageConverter mqttInputConverter() {
-        return new ProtobufMqttMessageConverter<TimePointNote>(
-                TimePointNote.class, mqttQos, mqttRetain);
-    }
-
-    /**
      * @return MQTT message producer
      */
     @Bean
     public MessageProducerSupport mqttInput() {
         MqttPahoMessageDrivenChannelAdapter adapter = new MqttPahoMessageDrivenChannelAdapter(
                 mqttHearClientId, mqttClientFactory(), mqttHearTopic);
-        adapter.setConverter(mqttInputConverter());
+        adapter.setConverter(new ProtobufMqttMessageConverter(
+                TimePointNote.class, mqttQos, mqttRetain));
         adapter.setQos(mqttQos);
         adapter.setOutputChannel(mqttInputChannel());
         return adapter;
@@ -129,8 +123,7 @@ public class Orchestra implements CommandLineRunner {
      */
     @Bean
     public IntegrationFlow mqttInputFlow() {
-        return IntegrationFlows.from(mqttInputChannel()).handle(masMusic)
-                .get();
+        return IntegrationFlows.from(mqttInputChannel()).handle(masMusic).get();
     }
 
     /**
@@ -142,17 +135,9 @@ public class Orchestra implements CommandLineRunner {
                 mqttPlayClientId, mqttClientFactory());
         handler.setDefaultTopic(mqttPlayTopic);
         handler.setDefaultQos(mqttQos);
-        handler.setConverter(mqttOutputConverter());
+        handler.setConverter(new ProtobufMqttMessageConverter(
+                TimeSpanNote.class, mqttQos, mqttRetain));
         return handler;
-    }
-
-    /**
-     * @return MQTT output message converter for Protocol Buffers message
-     */
-    @Bean
-    public MqttMessageConverter mqttOutputConverter() {
-        return new ProtobufMqttMessageConverter<TimeSpanNote>(
-                TimeSpanNote.class, mqttQos, mqttRetain);
     }
 
     /**
@@ -168,8 +153,39 @@ public class Orchestra implements CommandLineRunner {
      */
     @Bean
     public IntegrationFlow mqttOutputFlow() {
-        return IntegrationFlows.from(mqttOutputChannel())
-                .handle(mqttOutput()).get();
+        return IntegrationFlows.from(mqttOutputChannel()).handle(mqttOutput())
+                .get();
+    }
+
+    /**
+     * @return MQTT direction channel
+     */
+    @Bean
+    public MessageChannel mqttDirectionChannel() {
+        return new DirectChannel();
+    }
+
+    /**
+     * @return MQTT message producer
+     */
+    @Bean
+    public MessageProducerSupport mqttDirection() {
+        MqttPahoMessageDrivenChannelAdapter adapter = new MqttPahoMessageDrivenChannelAdapter(
+                mqttDirectionClientId, mqttClientFactory(), mqttDirectionTopic);
+        adapter.setConverter(new ProtobufMqttMessageConverter(
+                Direction.class, mqttQos, mqttRetain));
+        adapter.setQos(mqttQos);
+        adapter.setOutputChannel(mqttDirectionChannel());
+        return adapter;
+    }
+
+    /**
+     * @return MQTT input flow
+     */
+    @Bean
+    public IntegrationFlow mqttDirectionFlow() {
+        return IntegrationFlows.from(mqttDirectionChannel()).handle(masMusic)
+                .get();
     }
 
 }

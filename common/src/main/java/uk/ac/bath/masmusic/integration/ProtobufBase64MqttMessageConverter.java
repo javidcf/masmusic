@@ -3,8 +3,6 @@ package uk.ac.bath.masmusic.integration;
 import java.lang.reflect.Method;
 
 import org.eclipse.paho.client.mqttv3.MqttMessage;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.integration.mqtt.support.DefaultPahoMessageConverter;
 import org.springframework.messaging.Message;
 import org.springframework.util.Base64Utils;
@@ -19,14 +17,10 @@ import com.google.protobuf.MessageLite;
  * @param <E>
  *            Protocol Buffers message type
  */
-public class ProtobufBase64MqttMessageConverter<E extends MessageLite>
-extends DefaultPahoMessageConverter {
-
-    /** Logger */
-    private static Logger LOG = LoggerFactory.getLogger(ProtobufBase64MqttMessageConverter.class);
+public class ProtobufBase64MqttMessageConverter extends DefaultPahoMessageConverter {
 
     /** The Protocol Buffers message class */
-    private Class<E> messageClass;
+    private Class<? extends MessageLite> messageClass;
 
     /** The byte array parsing method */
     private Method parseMethod;
@@ -39,7 +33,7 @@ extends DefaultPahoMessageConverter {
      *
      * @see DefaultPahoMessageConverter#DefaultPahoMessageConverter()
      */
-    public ProtobufBase64MqttMessageConverter(Class<E> messageClass) {
+    public ProtobufBase64MqttMessageConverter(Class<? extends MessageLite> messageClass) {
         this(messageClass, 0, false);
     }
 
@@ -57,7 +51,7 @@ extends DefaultPahoMessageConverter {
      * @param defaultRetain
      *            Default retain policy
      */
-    public ProtobufBase64MqttMessageConverter(Class<E> messageClass,
+    public ProtobufBase64MqttMessageConverter(Class<? extends MessageLite> messageClass,
             int defaultQos, boolean defaultRetain) {
         this(messageClass, defaultQos, defaultRetain, "UTF-8");
     }
@@ -73,7 +67,7 @@ extends DefaultPahoMessageConverter {
      * @param charset
      *            The charset used in the conversion
      */
-    public ProtobufBase64MqttMessageConverter(Class<E> messageClass,
+    public ProtobufBase64MqttMessageConverter(Class<? extends MessageLite> messageClass,
             String charset) {
         this(messageClass, 0, false, charset);
     }
@@ -94,7 +88,7 @@ extends DefaultPahoMessageConverter {
      * @param charset
      *            The charset used in the conversion
      */
-    public ProtobufBase64MqttMessageConverter(Class<E> messageClass,
+    public ProtobufBase64MqttMessageConverter(Class<? extends MessageLite> messageClass,
             int defaultQos, boolean defaultRetained, String charset) {
         super(defaultQos, defaultRetained, charset);
         this.messageClass = messageClass;
@@ -112,7 +106,7 @@ extends DefaultPahoMessageConverter {
      * {@inheritDoc}
      */
     @Override
-    protected E mqttBytesToPayload(MqttMessage mqttMessage) throws Exception {
+    protected MessageLite mqttBytesToPayload(MqttMessage mqttMessage) throws Exception {
         byte[] decodedPayload = Base64Utils.decode(mqttMessage.getPayload());
         Object obj = parseMethod.invoke(null, decodedPayload);
         return messageClass.cast(obj);
@@ -123,9 +117,8 @@ extends DefaultPahoMessageConverter {
      */
     @Override
     protected byte[] messageToMqttBytes(Message<?> message) {
-        E protobufMessage = messageClass.cast(message.getPayload());
         byte[] encodedPayload = Base64Utils
-                .encode(protobufMessage.toByteArray());
+                .encode(((MessageLite) message.getPayload()).toByteArray());
         return encodedPayload;
     }
 

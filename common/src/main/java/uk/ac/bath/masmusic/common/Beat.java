@@ -100,7 +100,7 @@ public class Beat implements Cloneable {
     }
 
     /**
-     * Get the timestamp of the next beat that will after at the given time.
+     * Get the timestamp of the next beat after the given time.
      *
      * The returned timestamp is always posterior to the given one.
      *

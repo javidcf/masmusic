@@ -124,7 +124,7 @@ public class RhythmDetector extends EsperStatementSubscriber {
         for (int i = 0; i < onsetTimes.size() - 1; i++) {
             diffs += onsetTimes.get(i + 1) - onsetTimes.get(i);
         }
-        int beatDuration = Math.round(((float) diffs) / onsetTimes.size() - 1);
+        int beatDuration = Math.round(diffs / (onsetTimes.size() - 1.f));
         // Check if rhythm input is finished
         long now = System.currentTimeMillis();
         long lastOnsetTime = onsetTimes.get(onsetTimes.size() - 1);
