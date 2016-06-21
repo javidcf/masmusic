@@ -131,8 +131,7 @@ public class MasMusic implements MessageHandler, Runnable {
      *            Received direction message
      */
     private void handleDirectionMessage(Direction direction) {
-        if (direction.getScale().isInitialized()
-                && !direction.getScale().getType().isEmpty()) {
+        if (direction.hasScale() && !direction.getScale().getType().isEmpty()) {
             int scaleFundamental = direction.getScale().getFundamental()
                     .getNumber();
             String scaleType = direction.getScale().getType();
@@ -140,7 +139,7 @@ public class MasMusic implements MessageHandler, Runnable {
                 agent.setScale(scaleFundamental, scaleType);
             }
         }
-        if (direction.getRhythm().isInitialized()) {
+        if (direction.hasRhythm()) {
             int beatDuration = direction.getRhythm().getBeat().getDuration();
             int beatPhase = direction.getRhythm().getBeat().getPhase();
             int barBeats = direction.getRhythm().getTimeSignature().getBeats();
@@ -151,15 +150,16 @@ public class MasMusic implements MessageHandler, Runnable {
                         barBeatOffset);
             }
         }
-        if (direction.getScale().isInitialized()
-                && direction.getRhythm().isInitialized()) {
+        if (direction.hasScale() && direction.hasRhythm() && first) {
             // TODO Example performance instruction
+            first = false;
             for (MasMusicAbstractAgent agent : agents) {
-                // agent.perform(System.currentTimeMillis(), 4);
+                // agent.perform(System.currentTimeMillis(), 8);
             }
         }
-
     }
+
+    private boolean first = true;
 
     /**
      * @param pitch

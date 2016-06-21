@@ -43,20 +43,6 @@ public class ReplayAgent extends MasMusicAbstractAgent {
             long timestamp = System.currentTimeMillis();
             playNote(pitch, DEFAULT_VELOCITY, timestamp, DEFAULT_DURATION);
             return true;
-        } else if (actionTerm.getFunctor().equalsIgnoreCase("metronome")) {
-            long start = System.currentTimeMillis();
-            int bars = Integer.parseInt(actionTerm.getTerm(0).toString());
-            int beatDuration = Integer
-                    .parseInt(actionTerm.getTerm(1).toString());
-            int beatPhase = Integer.parseInt(actionTerm.getTerm(2).toString());
-            int barBeats = Integer.parseInt(actionTerm.getTerm(3).toString());
-            int barUnit = Integer.parseInt(actionTerm.getTerm(4).toString());
-            int barBeatOffset = Integer
-                    .parseInt(actionTerm.getTerm(5).toString());
-            Rhythm rhythm = new Rhythm(new Beat(beatDuration, beatPhase),
-                    new TimeSignature(barBeats, barUnit), barBeatOffset);
-            metronome(start, bars, rhythm);
-            return true;
         } else if (actionTerm.getFunctor().equalsIgnoreCase("compose")) {
             long start = Long.parseLong(actionTerm.getTerm(0).toString());
             int bars = Integer.parseInt(actionTerm.getTerm(1).toString());
@@ -74,29 +60,10 @@ public class ReplayAgent extends MasMusicAbstractAgent {
                     new TimeSignature(barBeats, barUnit), barBeatOffset);
             Scale scale = new Scale(Note.fromValue(fundamental), scaleName);
             compose(start, bars, rhythm, scale);
+            // composeBasicRock(start, bars, rhythm, scale);
             return true;
         } else {
             return false;
-        }
-    }
-
-    private void metronome(long start, int bars, Rhythm rhythm) {
-        // Emit notes like displaying the bars structure
-        long currentBeat = rhythm.nextBar(start);
-        Beat beat = rhythm.getBeat();
-        int beatDuration = beat.getDuration();
-        int fundamentalPitch = 60;
-        int fifthPitch = fundamentalPitch + 7;
-        for (int iBar = 0; iBar < bars; iBar++) {
-            playNote(fundamentalPitch, DEFAULT_VELOCITY, currentBeat,
-                    beatDuration);
-            currentBeat = beat.nextBeat(currentBeat);
-            for (int iBeat = 1; iBeat < rhythm.getTimeSignature()
-                    .getBeats(); iBeat++) {
-                playNote(fifthPitch, DEFAULT_VELOCITY, currentBeat,
-                        beatDuration);
-                currentBeat = beat.nextBeat(currentBeat);
-            }
         }
     }
 
@@ -157,6 +124,114 @@ public class ReplayAgent extends MasMusicAbstractAgent {
             throw new IllegalArgumentException();
         }
         return Integer.SIZE - 1 - Integer.numberOfLeadingZeros(value);
+    }
+
+    private void composeBasicRock(long start, int bars, Rhythm rhythm,
+            Scale scale) {
+        long currentBar = rhythm.nextBar(start);
+        int beats = rhythm.getTimeSignature().getBeats();
+        int beatDuration = rhythm.getBeat().getDuration();
+        int basePitch = 48 + scale.getFundamental().value();
+        int step = 0;
+        for (int iBar = 0; iBar < bars; iBar++) {
+            switch (step) {
+            case 0:
+            case 1:
+            case 3:
+            case 6:
+            case 7:
+                playArpeggiated7thBar(basePitch, currentBar, beats,
+                        beatDuration);
+                break;
+            case 2:
+            case 5:
+                playArpeggiated7thBar(basePitch + 5, currentBar, beats,
+                        beatDuration);
+                break;
+            case 4:
+                playArpeggiated7thBar(basePitch + 7, currentBar, beats,
+                        beatDuration);
+                break;
+            }
+            step = (step + 1) % 8;
+            currentBar = rhythm.nextBar(currentBar);
+        }
+    }
+
+    private void playArpeggiated7thBar(int basePitch, long timestamp, int beats,
+            int beatDuration) {
+        int semiBeatDuration = beatDuration / 2;
+        int thirdBeatDuration = beatDuration / 3;
+        int quarterBeatDuration = beatDuration / 4;
+        if (beats % 4 == 0) {
+            for (int iBeat = 0; iBeat < beats; iBeat += 4) {
+                playNote(basePitch, DEFAULT_VELOCITY, timestamp,
+                        semiBeatDuration);
+                timestamp += semiBeatDuration;
+                playNote(basePitch + 4, DEFAULT_VELOCITY, timestamp,
+                        semiBeatDuration);
+                timestamp += semiBeatDuration;
+                playNote(basePitch + 7, DEFAULT_VELOCITY, timestamp,
+                        semiBeatDuration);
+                timestamp += semiBeatDuration;
+                playNote(basePitch + 9, DEFAULT_VELOCITY, timestamp,
+                        quarterBeatDuration);
+                timestamp += quarterBeatDuration;
+                playNote(basePitch + 10, DEFAULT_VELOCITY, timestamp,
+                        semiBeatDuration + quarterBeatDuration);
+                timestamp += semiBeatDuration + quarterBeatDuration;
+                playNote(basePitch + 9, DEFAULT_VELOCITY, timestamp,
+                        semiBeatDuration);
+                timestamp += semiBeatDuration;
+                playNote(basePitch + 7, DEFAULT_VELOCITY, timestamp,
+                        semiBeatDuration);
+                timestamp += semiBeatDuration;
+                playNote(basePitch + 9, DEFAULT_VELOCITY, timestamp,
+                        semiBeatDuration);
+                timestamp += semiBeatDuration;
+            }
+        } else if (beats % 3 == 0) {
+            for (int iBeat = 0; iBeat < beats; iBeat += 3) {
+                playNote(basePitch, DEFAULT_VELOCITY, timestamp,
+                        2 * thirdBeatDuration);
+                timestamp += 2 * thirdBeatDuration;
+                playNote(basePitch + 7, DEFAULT_VELOCITY, timestamp,
+                        thirdBeatDuration);
+                timestamp += thirdBeatDuration;
+                playNote(basePitch + 9, DEFAULT_VELOCITY, timestamp,
+                        2 * thirdBeatDuration);
+                timestamp += 2 * thirdBeatDuration;
+                playNote(basePitch + 10, DEFAULT_VELOCITY, timestamp,
+                        thirdBeatDuration);
+                timestamp += thirdBeatDuration;
+                playNote(basePitch + 9, DEFAULT_VELOCITY, timestamp,
+                        2 * thirdBeatDuration);
+                timestamp += 2 * thirdBeatDuration;
+                playNote(basePitch + 7, DEFAULT_VELOCITY, timestamp,
+                        thirdBeatDuration);
+                timestamp += thirdBeatDuration;
+            }
+        } else {
+            int iBeat = 0;
+            while (iBeat < beats) {
+                playNote(basePitch, DEFAULT_VELOCITY, timestamp,
+                        2 * thirdBeatDuration);
+                timestamp += 2 * thirdBeatDuration;
+                playNote(basePitch + 7, DEFAULT_VELOCITY, timestamp,
+                        thirdBeatDuration);
+                timestamp += thirdBeatDuration;
+                iBeat++;
+                if (iBeat < beats) {
+                    playNote(basePitch + 9, DEFAULT_VELOCITY, timestamp,
+                            2 * thirdBeatDuration);
+                    timestamp += 2 * thirdBeatDuration;
+                    playNote(basePitch + 10, DEFAULT_VELOCITY, timestamp,
+                            thirdBeatDuration);
+                    timestamp += thirdBeatDuration;
+                    iBeat++;
+                }
+            }
+        }
     }
 
 }

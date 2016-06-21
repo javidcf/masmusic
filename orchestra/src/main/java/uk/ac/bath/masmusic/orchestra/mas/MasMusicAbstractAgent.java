@@ -150,6 +150,19 @@ public abstract class MasMusicAbstractAgent extends AgArch {
         }
     }
 
+    @Override
+    public boolean canSleep() {
+        return true;
+    }
+
+    @Override
+    public void sleep() {
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+        }
+    }
+
     /**
      * Inform the agent about a note event.
      *
