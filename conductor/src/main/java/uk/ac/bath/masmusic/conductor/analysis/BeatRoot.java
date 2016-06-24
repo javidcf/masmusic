@@ -106,6 +106,7 @@ public class BeatRoot {
         while (it.hasNext()) {
             Onset onset = it.next();
             long timestamp = onset.getTimestamp();
+            double salience = onsetSalience(onset);
 
             // DEBUG
             BeatTracker btr = trackers.peek();
@@ -138,11 +139,11 @@ public class BeatRoot {
             while (tracker != null && tracker.mayHit(timestamp)) {
                 if (tracker.isHit(onset.getTimestamp())) {
                     // Hit
-                    tracker.hit(onset.getTimestamp(), onset.getSalience());
+                    tracker.hit(onset.getTimestamp(), salience);
                 } else {
                     // Fork
                     BeatTracker fork = tracker.clone();
-                    fork.hit(timestamp, onset.getSalience());
+                    fork.hit(timestamp, salience);
                     reinsertTrackers.add(fork);
                 }
                 // Check next
@@ -178,7 +179,7 @@ public class BeatRoot {
      * @return The next tracker in the queue without duplicates, or null if the
      *         queue is empty
      */
-    private BeatTracker pollTracker(Queue<BeatTracker> trackerQueue) {
+    private static BeatTracker pollTracker(Queue<BeatTracker> trackerQueue) {
         if (trackerQueue == null || trackerQueue.isEmpty()) {
             return null;
         }
@@ -200,7 +201,7 @@ public class BeatRoot {
      *            Second tracker to compare
      * @return true if the trackers are similar, false otherwise
      */
-    private boolean similarTrackers(BeatTracker tracker1,
+    private static boolean similarTrackers(BeatTracker tracker1,
             BeatTracker tracker2) {
         if (tracker1 == tracker2) {
             return true;
@@ -215,5 +216,26 @@ public class BeatRoot {
         } else {
             return true;
         }
+    }
+
+    /**
+     * Computes the importance of an {@link Onset}.
+     *
+     * The formula used here is an heuristic for the perceived sound importance.
+     *
+     * @see <a href="http://users.auth.gr/emilios/papers/aaai2000.pdf">From MIDI
+     *      to traditional musical notation (Cambouropoulos, 2000)</a>
+     *
+     * @param onset
+     *            The onset considered
+     * @return The importance of the onset
+     */
+    private static double onsetSalience(Onset onset) {
+        double pitchFactor = Math.min(Math.max(onset.getPitch(), 30), 60);
+        double velocityFactor = Math.min(Math.max(onset.getVelocity(), 30), 90);
+        double duration = onset.getDuration();
+        return duration * (velocityFactor / pitchFactor);
+        // return duration * (velocityFactor / (pitchFactor * pitchFactor));
+        // return duration * (velocityFactor / Math.pow(pitchFactor, 3));
     }
 }

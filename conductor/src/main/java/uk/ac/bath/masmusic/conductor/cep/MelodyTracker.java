@@ -1,8 +1,8 @@
 package uk.ac.bath.masmusic.conductor.cep;
 
 import java.util.ArrayList;
+import java.util.ListIterator;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,17 +10,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import uk.ac.bath.masmusic.common.Beat;
 import uk.ac.bath.masmusic.common.Onset;
+import uk.ac.bath.masmusic.common.Rhythm;
 import uk.ac.bath.masmusic.conductor.Conductor;
-import uk.ac.bath.masmusic.conductor.analysis.BeatRoot;
 import uk.ac.bath.masmusic.protobuf.TimeSpanNote;
 
 /**
- * Beat detector for Esper {@link TimeSpanNote} events.
+ * Melody analyzer for Esper {@link TimeSpanNote} events.
  *
  * @author Javier Dehesa
  */
 //@Component
-public class BeatRootTracker extends EsperStatementSubscriber {
+public class MelodyTracker extends EsperStatementSubscriber {
 
     /** Quantization step size (ms) */
     private static final int QUANTIZATION = 40;  // TODO Use this?
@@ -32,34 +32,22 @@ public class BeatRootTracker extends EsperStatementSubscriber {
     private static final int ANALYSIS_FREQUENCY = 1000;
 
     /** Logger */
-    private static Logger LOG = LoggerFactory.getLogger(BeatRootTracker.class);
+    private static Logger LOG = LoggerFactory.getLogger(MelodyTracker.class);
+
+    @Autowired
+    private RhythmDetector rhythmDetector;
 
     @Autowired
     private Conductor conductor;
 
-    /** BeatRoot beat tracker. */
-    @Autowired
-    private BeatRoot beatRoot;
-
     /** Events in the last analyzed window (sorted by time) */
     private final ArrayList<Onset> onsets;
-
-    /** Currently tracked beat. */
-    private final AtomicReference<Beat> beat;
 
     /**
      * Constructor.
      */
-    public BeatRootTracker() {
+    public MelodyTracker() {
         onsets = new ArrayList<>();
-        beat = new AtomicReference<>(null);
-    }
-
-    /**
-     * @return The current beat
-     */
-    public Beat getCurrentBeat() {
-        return beat.get();
     }
 
     /*** Esper ***/
@@ -105,13 +93,46 @@ public class BeatRootTracker extends EsperStatementSubscriber {
      * Finish event delivery.
      */
     public void updateEnd() {
-        Beat newBeat = beatRoot.estimateBeat(onsets);
-        onsets.clear();
-        if (newBeat != null) {
-            LOG.debug("New beat: {}", newBeat);
-            beat.set(newBeat);
-            conductor.conduct();
+        if (onsets.isEmpty()) {
+            return;
         }
+        // Snap onsets to the detected rhythm
+        Rhythm rhythm = rhythmDetector.getDetectedRhtyhm();
+        ListIterator<Onset> it = onsets.listIterator();
+        while (it.hasNext()) {
+            it.set(snapOnsetToBeat(it.next(), rhythm.getBeat(), 2));
+        }
+
+        onsets.clear();
+    }
+
+    /**
+     * Create a new onset resulting of snapping the given onset to the closest
+     * beat subdivision.
+     *
+     * The resulting onset has a timestamp and duration that matches exactly
+     * some beat subdivisions.
+     *
+     * @param onset
+     *            Onset to snap
+     * @param beat
+     *            Beat to which the onset is snapped
+     * @param subdivision
+     *            Number of beat subdivisons allowed (0 = full beat, 1 = half
+     *            beat, 2 = quarter beat, etc.)
+     * @return
+     */
+    public static Onset snapOnsetToBeat(Onset onset, Beat beat,
+            int subdivision) {
+        if (subdivision < 0) {
+            throw new IllegalArgumentException(
+                    "The allowed subdivision level cannot be negative");
+        }
+        long begin = beat.closestSubbeat(onset.getTimestamp(), subdivision);
+        long end = beat.closestSubbeat(
+                onset.getTimestamp() + onset.getDuration(), subdivision);
+        return new Onset(begin, (int) (end - begin), onset.getPitch(),
+                onset.getVelocity());
     }
 
 }

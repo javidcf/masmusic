@@ -7,72 +7,73 @@ package uk.ac.bath.masmusic.common;
  */
 public class Onset {
 
-    /** Onset timestamp (ms) */
-    private long timestamp;
-    /** Onset salience vaule */
-    private double salience;
+    /** Onset timestamp (ms). */
+    private final long timestamp;
+    /** Onset duration, or 0 if not available (ms). */
+    private final int duration;
+    /** Onset pitch value, in MIDI scale. */
+    private final int pitch;
+    /** Onset velocity. */
+    private final int velocity;
 
     /**
      * Constructor.
      *
      * @param timestamp
-     *            Onset timestamp in milliseconds
-     * @param salience
-     *            Onset salience value
+     *            Onset timestamp (ms)
+     * @param pitch
+     *            Onset pitch value, in MIDI scale
+     * @param velocity
+     *            Onset velocity
      */
-    public Onset(long timestamp, double salience) {
-	this.timestamp = timestamp;
-	this.salience = salience;
+    public Onset(long timestamp, int pitch, int velocity) {
+        this(timestamp, 0, pitch, velocity);
     }
 
     /**
-     * @return Onset timestamp in milliseconds
+     * Constructor.
+     *
+     * @param timestamp
+     *            Onset timestamp (ms)
+     * @param duration
+     *            Onset duration, or 0 if not available (ms)
+     * @param pitch
+     *            Onset pitch value, in MIDI scale
+     * @param velocity
+     *            Onset velocity
+     */
+    public Onset(long timestamp, int duration, int pitch, int velocity) {
+        this.timestamp = timestamp;
+        this.duration = duration;
+        this.pitch = pitch;
+        this.velocity = velocity;
+    }
+
+    /**
+     * @return Onset timestamp (ms)
      */
     public long getTimestamp() {
-	return timestamp;
+        return timestamp;
     }
 
     /**
-     * @return Onset salience
+     * @return Onset duration, or 0 if not available (ms)
      */
-    public double getSalience() {
-	return salience;
+    public int getDuration() {
+        return duration;
     }
 
-    @Override
-    public String toString() {
-	return "Onset [timestamp=" + timestamp + ", salience=" + salience + "]";
+    /**
+     * @return Onset pitch value, in MIDI scale
+     */
+    public int getPitch() {
+        return pitch;
     }
 
-    @Override
-    public int hashCode() {
-	final int prime = 31;
-	int result = 1;
-	long temp;
-	temp = Double.doubleToLongBits(salience);
-	result = prime * result + (int) (temp ^ (temp >>> 32));
-	result = prime * result + (int) (timestamp ^ (timestamp >>> 32));
-	return result;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-	if (this == obj) {
-	    return true;
-	}
-	if (obj == null) {
-	    return false;
-	}
-	if (getClass() != obj.getClass()) {
-	    return false;
-	}
-	Onset other = (Onset) obj;
-	if (Double.doubleToLongBits(salience) != Double.doubleToLongBits(other.salience)) {
-	    return false;
-	}
-	if (timestamp != other.timestamp) {
-	    return false;
-	}
-	return true;
+    /**
+     * @return Onset velocity
+     */
+    public int getVelocity() {
+        return velocity;
     }
 }

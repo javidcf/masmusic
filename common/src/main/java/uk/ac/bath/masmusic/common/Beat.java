@@ -120,11 +120,83 @@ public class Beat implements Cloneable {
      *
      * @param timestamp
      *            Time at which the closest beat time is computed
-     * @return The closest beat that to the timestamp
+     * @return The closest beat to the timestamp
      */
     public long closestBeat(long timestamp) {
         long prev = currentBeat(timestamp);
         long next = nextBeat(timestamp);
+        if ((timestamp - prev) <= (next - timestamp)) {
+            return prev;
+        } else {
+            return next;
+        }
+    }
+
+    /**
+     * Get the timestamp of the last subbeat that happened at the given time.
+     *
+     * The returned timestamp is always preceding or equal to the given one.
+     *
+     * @param timestamp
+     *            Time at which the subbeat time is computed
+     * @param subdivision
+     *            Subdivision level of the beat considered
+     * @return The last subbeat that happened at the given timestamp
+     */
+    public long currentSubbeat(long timestamp, int subdivision) {
+        if (subdivision < 0) {
+            throw new IllegalArgumentException(
+                    "The allowed subdivision level cannot be negative");
+        }
+        long prevBeat = currentBeat(timestamp);
+        int subbeatDuration = Math.round(duration / (float) (1 << subdivision));
+        long subbeat = ((timestamp - prevBeat) / subbeatDuration)
+                * subbeatDuration;
+        return prevBeat + subbeat;
+    }
+
+    /**
+     * Get the timestamp of the next subbeat after the given time.
+     *
+     * The returned timestamp is always posterior to the given one.
+     *
+     * @param timestamp
+     *            Time at which the next subbeat time is computed
+     * @param subdivision
+     *            Subdivision level of the beat considered
+     * @return The next subbeat that will happen after the given timestamp
+     */
+    public long nextSubbeat(long timestamp, int subdivision) {
+        if (subdivision < 0) {
+            throw new IllegalArgumentException(
+                    "The allowed subdivision level cannot be negative");
+        }
+        long nextBeat = nextBeat(timestamp);
+        int subbeatDuration = Math.round(duration / (float) (1 << subdivision));
+        long subbeat = ((nextBeat - timestamp) / subbeatDuration)
+                * subbeatDuration;
+        return nextBeat - subbeat;
+    }
+
+    /**
+     * Get the timestamp of the subbeat that is closest to the given timestamp.
+     *
+     * The returned timestamp may be equal, preceding or posterior to the given
+     * timestamp.
+     *
+     * @param timestamp
+     *            Time at which the closest subbeat time is computed
+     * @param subdivision
+     *            Subdivision level of the beat considered
+     * @return The closest subbeat to the timestamp
+     */
+    public long closestSubbeat(long timestamp, int subdivision) {
+        if (subdivision < 0) {
+            throw new IllegalArgumentException(
+                    "The allowed subdivision level cannot be negative");
+        }
+        long prev = currentSubbeat(timestamp, subdivision);
+        long next = nextSubbeat(timestamp, subdivision);
         if ((timestamp - prev) <= (next - timestamp)) {
             return prev;
         } else {
