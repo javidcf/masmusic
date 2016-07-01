@@ -1,17 +1,19 @@
 package uk.ac.bath.masmusic.conductor.cep;
 
 import java.util.ArrayList;
-import java.util.ListIterator;
+import java.util.List;
 import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
-import uk.ac.bath.masmusic.common.Beat;
 import uk.ac.bath.masmusic.common.Onset;
+import uk.ac.bath.masmusic.common.Phrase;
 import uk.ac.bath.masmusic.common.Rhythm;
 import uk.ac.bath.masmusic.conductor.Conductor;
+import uk.ac.bath.masmusic.conductor.analysis.PhraseExtractor;
 import uk.ac.bath.masmusic.protobuf.TimeSpanNote;
 
 /**
@@ -19,23 +21,26 @@ import uk.ac.bath.masmusic.protobuf.TimeSpanNote;
  *
  * @author Javier Dehesa
  */
-//@Component
+@Component
 public class MelodyTracker extends EsperStatementSubscriber {
 
     /** Quantization step size (ms) */
-    private static final int QUANTIZATION = 40;  // TODO Use this?
+    private static final int QUANTIZATION = 40; // TODO Use this?
 
     /** Window size for beat analysis (ms) */
     private static final int ANALYSIS_WINDOW = 5000;
 
     /** Frequency of beat analysis (ms) */
-    private static final int ANALYSIS_FREQUENCY = 1000;
+    private static final int ANALYSIS_FREQUENCY = 5000;
 
     /** Logger */
     private static Logger LOG = LoggerFactory.getLogger(MelodyTracker.class);
 
     @Autowired
     private RhythmDetector rhythmDetector;
+
+    @Autowired
+    private PhraseExtractor phraseExtractor;
 
     @Autowired
     private Conductor conductor;
@@ -59,11 +64,9 @@ public class MelodyTracker extends EsperStatementSubscriber {
     public String getStatementQuery() {
         return "select"
                 // + " Math.round(avg(timestamp)) as timestamp"
-                + "noteOnset(*) as onset"
-                + " from TimeSpanNote.win:time(" + ANALYSIS_WINDOW + " msec) "
+                + " noteOnset(*) as onset" + " from TimeSpanNote.win:time(" + ANALYSIS_WINDOW + " msec) "
                 // + " group by Math.round(timestamp / " + QUANTIZATION + ")"
-                + " output snapshot every " + ANALYSIS_FREQUENCY + " msec"
-                + " order by timestamp asc";
+                + " output snapshot every " + ANALYSIS_FREQUENCY + " msec" + " order by timestamp asc";
     }
 
     /**
@@ -96,43 +99,14 @@ public class MelodyTracker extends EsperStatementSubscriber {
         if (onsets.isEmpty()) {
             return;
         }
-        // Snap onsets to the detected rhythm
         Rhythm rhythm = rhythmDetector.getDetectedRhtyhm();
-        ListIterator<Onset> it = onsets.listIterator();
-        while (it.hasNext()) {
-            it.set(snapOnsetToBeat(it.next(), rhythm.getBeat(), 2));
+        if (rhythm == null) {
+            return;
         }
+
+        List<Phrase> phrases = phraseExtractor.extractPhrases(onsets, rhythm);
 
         onsets.clear();
-    }
-
-    /**
-     * Create a new onset resulting of snapping the given onset to the closest
-     * beat subdivision.
-     *
-     * The resulting onset has a timestamp and duration that matches exactly
-     * some beat subdivisions.
-     *
-     * @param onset
-     *            Onset to snap
-     * @param beat
-     *            Beat to which the onset is snapped
-     * @param subdivision
-     *            Number of beat subdivisons allowed (0 = full beat, 1 = half
-     *            beat, 2 = quarter beat, etc.)
-     * @return
-     */
-    public static Onset snapOnsetToBeat(Onset onset, Beat beat,
-            int subdivision) {
-        if (subdivision < 0) {
-            throw new IllegalArgumentException(
-                    "The allowed subdivision level cannot be negative");
-        }
-        long begin = beat.closestSubbeat(onset.getTimestamp(), subdivision);
-        long end = beat.closestSubbeat(
-                onset.getTimestamp() + onset.getDuration(), subdivision);
-        return new Onset(begin, (int) (end - begin), onset.getPitch(),
-                onset.getVelocity());
     }
 
 }

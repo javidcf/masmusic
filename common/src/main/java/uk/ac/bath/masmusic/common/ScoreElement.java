@@ -3,6 +3,7 @@ package uk.ac.bath.masmusic.common;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 
 /**
@@ -15,19 +16,21 @@ public class ScoreElement {
     /** Duration of the element in beats. */
     private final float duration;
 
-    private final List<Note> notes;
+    /** MIDI pitch values in the element. */
+    private final List<Integer> pitches;
 
     /**
      * Constructor.
      *
      * @param duration
      *            Duration of the element in beats
-     * @param notes
-     *            Notes in the element
+     * @param pitches
+     *            MIDI pitch values in the element
      */
-    public ScoreElement(float duration, Collection<Note> notes) {
+    public ScoreElement(float duration, Collection<Integer> pitches) {
         this.duration = duration;
-        this.notes = Collections.unmodifiableList(new ArrayList<>(notes));
+        // Create immutable list without repetitions
+        this.pitches = Collections.unmodifiableList(new ArrayList<>(new HashSet<>(pitches)));
     }
 
     /**
@@ -38,10 +41,15 @@ public class ScoreElement {
     }
 
     /**
-     * @return Notes in the element
+     * @return MIDI pitch values in the element
      */
-    public List<Note> getNotes() {
-        return notes;
+    public Collection<Integer> getPitches() {
+        return pitches;
+    }
+
+    @Override
+    public String toString() {
+        return "ScoreElement [duration=" + duration + ", pitches=" + pitches + "]";
     }
 
 }

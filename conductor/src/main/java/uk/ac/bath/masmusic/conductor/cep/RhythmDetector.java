@@ -24,7 +24,7 @@ import uk.ac.bath.masmusic.protobuf.TimeSpanNote;
 public class RhythmDetector extends EsperStatementSubscriber {
 
     /** Quantization step size (ms) */
-    private static final int QUANTIZATION = 40;  // TODO Use this?
+    private static final int QUANTIZATION = 40; // TODO Use this?
 
     /** Window size for beat analysis (ms) */
     private static final int ANALYSIS_WINDOW = 5000;
@@ -121,8 +121,8 @@ public class RhythmDetector extends EsperStatementSubscriber {
             return;
         }
         long diffs = 0;
-        for (int i = 0; i < onsetTimes.size() - 1; i++) {
-            diffs += onsetTimes.get(i + 1) - onsetTimes.get(i);
+        for (int i = 1; i < onsetTimes.size(); i++) {
+            diffs += onsetTimes.get(i) - onsetTimes.get(i - 1);
         }
         int beatDuration = Math.round(diffs / (onsetTimes.size() - 1.f));
         // Check if rhythm input is finished

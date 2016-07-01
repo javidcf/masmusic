@@ -68,6 +68,13 @@ public class Rhythm {
     }
 
     /**
+     * @return The duration of one bar
+     */
+    public int getBarDuration() {
+        return beat.getDuration() * timeSignature.getBeats();
+    }
+
+    /**
      * Get the timestamp of the last bar that happened at the given time.
      *
      * The returned timestamp is always preceding or equal to the given one.
