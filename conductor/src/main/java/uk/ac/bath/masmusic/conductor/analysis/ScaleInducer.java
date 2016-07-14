@@ -51,9 +51,9 @@ public class ScaleInducer {
     private int scaleNoteScore(Scale scale, Note note) {
         int degree = scale.degreeOf(note);
         if (degree >= 0) {
-            if (degree == 0) {
+            if (degree == 1) {
                 return 3;
-            } else if (scale.size() == 7) {
+            } else if (scale.isHeptatonic()) {
                 // Consider diferent degrees in heptatonic scales
                 if (degree == 4 || degree == 5) {
                     return 2;

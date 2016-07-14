@@ -65,18 +65,21 @@ public class PhraseExtractor {
         List<Onset> bass = new ArrayList<>();
         List<Onset> treble = new ArrayList<>();
         splitBassAndTrebble(onsetsSnap, bass, treble);
-        // TODO Make use of split parts in phrase extraction
 
-        if (onsetsSnap.isEmpty()) {
+        // TODO Check whether this is okay
+        // List<Onset> phrasesSource = onsetsSnap;
+        List<Onset> phrasesSource = treble;
+
+        if (phrasesSource.isEmpty()) {
             return Collections.emptyList();
         }
 
         // Do tracking
         List<Phrase> extractedPhrases = new ArrayList<>();
         Beat beat = rhythm.getBeat();
-        long baseTimestamp = onsetsSnap.get(0).getTimestamp();
+        long baseTimestamp = phrasesSource.get(0).getTimestamp();
         Set<Integer> pitches = new HashSet<>();
-        ListIterator<Onset> it = onsetsSnap.listIterator();
+        ListIterator<Onset> it = phrasesSource.listIterator();
         PriorityQueue<PhraseTracker> trackers = new PriorityQueue<>();
         List<PhraseTracker> reintroduceTrackers = new ArrayList<>();
         Onset onset = it.next();

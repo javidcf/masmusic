@@ -11,7 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import uk.ac.bath.masmusic.common.Beat;
 import uk.ac.bath.masmusic.common.Onset;
 import uk.ac.bath.masmusic.conductor.Conductor;
-import uk.ac.bath.masmusic.conductor.analysis.BeatRoot;
+import uk.ac.bath.masmusic.conductor.analysis.beatroot.BeatRoot;
 import uk.ac.bath.masmusic.protobuf.TimeSpanNote;
 
 /**

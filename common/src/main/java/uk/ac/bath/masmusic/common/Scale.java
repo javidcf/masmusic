@@ -33,9 +33,12 @@ public class Scale {
      */
     private static class ScaleType {
         final String name;
-        final int[] intervals;
+        final int[]  intervals;
 
         ScaleType(String name, int[] intervals) {
+            if (intervals.length < 1) {
+                throw new IllegalArgumentException("A scale must have at least one interval");
+            }
             this.name = name;
             this.intervals = intervals;
         }
@@ -67,11 +70,15 @@ public class Scale {
      *            Intervals of the scale
      */
     public Scale(Note fundamental, String name, int[] intervals) {
+        if (intervals.length < 1) {
+            throw new IllegalArgumentException("A scale must have at least one interval");
+        }
         int lastInterval = -1;
         for (int interval : intervals) {
             if (interval <= lastInterval || interval >= 12) {
                 throw new IllegalArgumentException("Invalid intervals");
             }
+            lastInterval = interval;
         }
         this.name = name;
         this.fundamental = fundamental;
@@ -117,25 +124,87 @@ public class Scale {
      * @return The note of the given degree in the scale
      */
     public Note getNote(int degree) {
-        if (degree < 0 || degree >= intervals.length) {
+        if (degree < 1 || degree > intervals.length) {
             throw new IllegalArgumentException("Invalid scale degree");
         }
-        return Note.fromValue(fundamental.value() + intervals[degree]);
+        return fundamental.increasedBy(intervals[degree - 1]);
     }
 
     /**
      * @param note
      *            A note to look up in the scale
-     * @return The degree of the note in the scale, or -1 if the note is not in
-     *         the scale
+     * @return The degree of the note in the scale (starting from 1), or -1 if
+     *         the note is not in the scale
      */
     public int degreeOf(Note note) {
-        for (int i = 0; i < size(); i++) {
+        for (int i = 1; i <= size(); i++) {
             if (note == getNote(i)) {
                 return i;
             }
         }
         return -1;
+    }
+
+    /**
+     * @param note
+     *            A note to look up in the scale
+     * @return The degree of the note in the scale (starting from 1); if it is
+     *         not in the scale, the note is considered to be an alteration and
+     *         the base degree is returned
+     */
+    public int degreeWithAlterationOf(Note note) {
+        int deg = degreeOf(note);
+        if (deg > 0) {
+            return deg;
+        }
+        if (isHeptatonic()) {
+            // Try heptatonic conventions
+            // TODO Not so sure about these ones...
+            if (note.ascendingDistanceTo(getNote(2)) == 1) {
+                return 2;
+            } else if (note.absoluteDistanceTo(getNote(3)) == 1) {
+                return 3;
+            } else if (note.ascendingDistanceTo(getNote(5)) == 1) {
+                return 5;
+            } else if (note.absoluteDistanceTo(getNote(6)) == 1) {
+                return 6;
+            } else if (note.absoluteDistanceTo(getNote(7)) == 1) {
+                return 7;
+            }
+        }
+
+        // Pick whichever is closest
+        int best = 0;
+        int bestDistance = Integer.MAX_VALUE;
+        for (int i = 1; i <= size(); i++) {
+            Note scaleNote = getNote(i);
+            int distance = note.absoluteDistanceTo(scaleNote);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = i;
+            }
+        }
+        if (best < 1) {
+            throw new AssertionError("Scale is empty");
+        }
+        return best;
+    }
+
+    /**
+     * @param note
+     *            A note to look up in the scale
+     * @return The alteration of the note in the scale in half steps
+     */
+    public int alterationOf(Note note) {
+        int deg = degreeWithAlterationOf(note);
+        return getNote(deg).distanceTo(note);
+    }
+
+    /**
+     * @return Whether the scale is heptatonic
+     */
+    public boolean isHeptatonic() {
+        return size() == 7;
     }
 
     @Override

@@ -1,4 +1,4 @@
-package uk.ac.bath.masmusic.conductor.analysis;
+package uk.ac.bath.masmusic.conductor.analysis.beatroot;
 
 import java.util.ArrayList;
 import java.util.Collections;

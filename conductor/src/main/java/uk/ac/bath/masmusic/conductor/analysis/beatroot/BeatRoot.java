@@ -1,4 +1,4 @@
-package uk.ac.bath.masmusic.conductor.analysis;
+package uk.ac.bath.masmusic.conductor.analysis.beatroot;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -84,7 +84,7 @@ public class BeatRoot {
                 onsets.size() / Math.ceil(onsetsWindow / TRACKER_START_WINDOW));
 
         // Create trackers for every onset in the start window
-        PriorityQueue<BeatTracker> trackers = new PriorityQueue<>(
+        PriorityQueue<Tracker> trackers = new PriorityQueue<>(
                 2 * nOnsetsIni * induced.size());
         long baseTimestamp = onsets.get(0).getTimestamp();
         Iterator<Onset> it = onsets.iterator();
@@ -93,7 +93,7 @@ public class BeatRoot {
             long timestamp = onset.getTimestamp();
             if (timestamp - baseTimestamp <= TRACKER_START_WINDOW) {
                 for (double beatDuration : induced) {
-                    trackers.add(new BeatTracker(beatDuration, timestamp));
+                    trackers.add(new Tracker(beatDuration, timestamp));
                 }
             } else {
                 break;
@@ -101,7 +101,7 @@ public class BeatRoot {
         }
 
         // Iterate onsets
-        List<BeatTracker> reinsertTrackers = new ArrayList<>();
+        List<Tracker> reinsertTrackers = new ArrayList<>();
         it = onsets.iterator();
         while (it.hasNext()) {
             Onset onset = it.next();
@@ -109,8 +109,8 @@ public class BeatRoot {
             double salience = onsetSalience(onset);
 
             // DEBUG
-            BeatTracker btr = trackers.peek();
-            for (BeatTracker tr : trackers) {
+            Tracker btr = trackers.peek();
+            for (Tracker tr : trackers) {
                 if (tr.getScore() > btr.getScore()) {
                     btr = tr;
                 }
@@ -119,7 +119,7 @@ public class BeatRoot {
             // DEBUG
 
             // Move ahead trackers behind the onset
-            BeatTracker tracker = pollTracker(trackers);
+            Tracker tracker = pollTracker(trackers);
             while (tracker != null
                     && tracker.isMarginBehind(timestamp)) {
                 // If the tracker is not expired move it to the next beat
@@ -142,7 +142,7 @@ public class BeatRoot {
                     tracker.hit(onset.getTimestamp(), salience);
                 } else {
                     // Fork
-                    BeatTracker fork = tracker.clone();
+                    Tracker fork = tracker.clone();
                     fork.hit(timestamp, salience);
                     reinsertTrackers.add(fork);
                 }
@@ -161,8 +161,8 @@ public class BeatRoot {
         }
 
         // Find the best tracker
-        BeatTracker bestTracker = trackers.peek();
-        for (BeatTracker tracker : trackers) {
+        Tracker bestTracker = trackers.peek();
+        for (Tracker tracker : trackers) {
             if (tracker.getScore() > bestTracker.getScore()) {
                 bestTracker = tracker;
             }
@@ -179,14 +179,14 @@ public class BeatRoot {
      * @return The next tracker in the queue without duplicates, or null if the
      *         queue is empty
      */
-    private static BeatTracker pollTracker(Queue<BeatTracker> trackerQueue) {
+    private static Tracker pollTracker(Queue<Tracker> trackerQueue) {
         if (trackerQueue == null || trackerQueue.isEmpty()) {
             return null;
         }
-        BeatTracker tracker = trackerQueue.poll();
+        Tracker tracker = trackerQueue.poll();
         while (similarTrackers(tracker, trackerQueue.peek())) {
             // Duplicate found - keep the one with higher score
-            BeatTracker other = trackerQueue.poll();
+            Tracker other = trackerQueue.poll();
             if (tracker.getScore() < other.getScore()) {
                 tracker = other;
             }
@@ -201,8 +201,8 @@ public class BeatRoot {
      *            Second tracker to compare
      * @return true if the trackers are similar, false otherwise
      */
-    private static boolean similarTrackers(BeatTracker tracker1,
-            BeatTracker tracker2) {
+    private static boolean similarTrackers(Tracker tracker1,
+            Tracker tracker2) {
         if (tracker1 == tracker2) {
             return true;
         } else if (tracker1 == null ^ tracker2 == null) {

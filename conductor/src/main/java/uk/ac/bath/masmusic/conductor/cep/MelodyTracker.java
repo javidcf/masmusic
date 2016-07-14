@@ -1,8 +1,10 @@
 package uk.ac.bath.masmusic.conductor.cep;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +30,7 @@ public class MelodyTracker extends EsperStatementSubscriber {
     private static final int QUANTIZATION = 40; // TODO Use this?
 
     /** Window size for beat analysis (ms) */
-    private static final int ANALYSIS_WINDOW = 5000;
+    private static final int ANALYSIS_WINDOW = 60000;
 
     /** Frequency of beat analysis (ms) */
     private static final int ANALYSIS_FREQUENCY = 5000;
@@ -48,11 +50,22 @@ public class MelodyTracker extends EsperStatementSubscriber {
     /** Events in the last analyzed window (sorted by time) */
     private final ArrayList<Onset> onsets;
 
+    /** Extracted phrases. */
+    private final AtomicReference<List<Phrase>> extractedPhrases;
+
     /**
      * Constructor.
      */
     public MelodyTracker() {
         onsets = new ArrayList<>();
+        extractedPhrases = new AtomicReference<>(Collections.emptyList());
+    }
+
+    /**
+     * @return The list of extracted phrases
+     */
+    public List<Phrase> getExtractedPhrases() {
+        return extractedPhrases.get();
     }
 
     /*** Esper ***/
@@ -105,6 +118,7 @@ public class MelodyTracker extends EsperStatementSubscriber {
         }
 
         List<Phrase> phrases = phraseExtractor.extractPhrases(onsets, rhythm);
+        extractedPhrases.set(Collections.unmodifiableList(phrases));
 
         onsets.clear();
     }

@@ -1,7 +1,8 @@
-package uk.ac.bath.masmusic.conductor.generate;
+package uk.ac.bath.masmusic.conductor.generation;
 
 import java.security.InvalidParameterException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -36,10 +37,8 @@ public class MarkovPitchGeneratorTable {
     /**
      * Set an entry in the table.
      *
-     * @param degree
-     *            Scale degree
-     * @param alteration
-     *            Degree alteration in half steps
+     * @param relPitch
+     *            Pitch class of the note relative to the scale tonic
      * @param ngram
      *            Sequence of last intervals
      * @param transitions
@@ -47,10 +46,10 @@ public class MarkovPitchGeneratorTable {
      *            pitch transition in half steps and the values the number of
      *            occurrences
      */
-    public void setEntry(int degree, int alteration, List<Integer> ngram,
+    public void setEntry(int relPitch, List<Integer> ngram,
             Map<Integer, Integer> transitions) {
-        if (degree < 1) {
-            throw new InvalidParameterException("The degree must be positive");
+        if (relPitch < 0 || relPitch >= 12) {
+            throw new InvalidParameterException("The relative pitch class must be between 0 and 11");
         }
         if (ngram.size() != order) {
             throw new InvalidParameterException(
@@ -61,7 +60,7 @@ public class MarkovPitchGeneratorTable {
                     "The transitions cannot be empty");
         }
         // Create status
-        Status status = new Status(degree, alteration, ngram);
+        Status status = new Status(relPitch, ngram);
         // Create transitions computing relative probabilities
         List<Integer> steps = new ArrayList<>(transitions.size());
         List<Double> probabilities = new ArrayList<>(transitions.size());
@@ -82,10 +81,8 @@ public class MarkovPitchGeneratorTable {
     /**
      * Pick a step from a status in the table.
      *
-     * @param degree
-     *            Scale degree
-     * @param alteration
-     *            Degree alteration in half steps
+     * @param relPitch
+     *            Pitch class of the note relative to the scale tonic
      * @param ngram
      *            Sequence of last intervals
      * @param value
@@ -93,13 +90,29 @@ public class MarkovPitchGeneratorTable {
      * @return The step corresponding to the given status and value, or null if
      *         the status does not exist in the table.
      */
-    public Integer pickStep(int degree, int alteration, List<Integer> ngram,
+    public Integer pickStep(int relPitch, int[] ngram, double value) {
+        return pickStep(relPitch, Arrays.stream(ngram).boxed().collect(Collectors.toList()), value);
+    }
+
+    /**
+     * Pick a step from a status in the table.
+     *
+     * @param relPitch
+     *            Pitch class of the note relative to the scale tonic
+     * @param ngram
+     *            Sequence of last intervals
+     * @param value
+     *            A value in the range [0, 1]
+     * @return The step corresponding to the given status and value, or null if
+     *         the status does not exist in the table.
+     */
+    public Integer pickStep(int relPitch, List<Integer> ngram,
             double value) {
         if (ngram.size() != order) {
             throw new InvalidParameterException(
                     "The size of the n-gram must match the order of the table");
         }
-        Status status = new Status(degree, alteration, ngram);
+        Status status = new Status(relPitch, ngram);
         Transitions trans = table.get(status);
         if (trans == null) {
             return null;
@@ -123,42 +136,35 @@ public class MarkovPitchGeneratorTable {
     /** Markov chain status. */
     private static class Status {
 
-        /** Scale degree. */
-        final int degree;
-        /** Degree alteration in half steps. */
-        final int alteration;
+        /** Relative pitch class. */
+        final int           relPitch;
         /** Sequence of last intervals. */
         final List<Integer> ngram;
 
         /**
          * Constructor.
          *
-         * @param degree
-         *            Scale degree
-         * @param alteration
-         *            Degree alteration in half steps
+         * @param relPitch
+         *            Relative pitch class
          * @param ngram
          *            Sequence of last intervals
          */
-        Status(int degree, int alteration, List<Integer> ngram) {
-            this.degree = degree;
-            this.alteration = alteration;
+        Status(int relPitch, List<Integer> ngram) {
+            this.relPitch = relPitch;
             this.ngram = Collections
                     .unmodifiableList(new ArrayList<Integer>(ngram));
         }
 
         @Override
         public String toString() {
-            return "Status [degree=" + degree + ", alteration=" + alteration
-                    + ", ngram=" + ngram + "]";
+            return "Status [relPitch=" + relPitch + ", ngram=" + ngram + "]";
         }
 
         @Override
         public int hashCode() {
             final int prime = 31;
             int result = 1;
-            result = prime * result + alteration;
-            result = prime * result + degree;
+            result = prime * result + relPitch;
             result = prime * result + ((ngram == null) ? 0 : ngram.hashCode());
             return result;
         }
@@ -175,10 +181,7 @@ public class MarkovPitchGeneratorTable {
                 return false;
             }
             Status other = (Status) obj;
-            if (alteration != other.alteration) {
-                return false;
-            }
-            if (degree != other.degree) {
+            if (relPitch != other.relPitch) {
                 return false;
             }
             if (ngram == null) {
@@ -195,7 +198,7 @@ public class MarkovPitchGeneratorTable {
     /** Markov chain transitions. */
     static class Transitions {
         private final List<Integer> steps;
-        private final List<Double> probabilities;
+        private final List<Double>  probabilities;
 
         Transitions(List<Integer> steps, List<Double> probabilities) {
             assert (steps.size() == probabilities.size());

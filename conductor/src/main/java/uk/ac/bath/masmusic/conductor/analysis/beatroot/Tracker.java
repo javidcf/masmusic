@@ -1,4 +1,4 @@
-package uk.ac.bath.masmusic.conductor.analysis;
+package uk.ac.bath.masmusic.conductor.analysis.beatroot;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -11,7 +11,7 @@ import uk.ac.bath.masmusic.common.Beat;
  *
  * @author Javier Dehesa
  */
-class BeatTracker implements Comparable<BeatTracker>, Cloneable {
+class Tracker implements Comparable<Tracker>, Cloneable {
 
     /** Time margin to consider a beat to be on time (ms). */
     private static final double INNER_MARGIN = 40.;
@@ -74,7 +74,7 @@ class BeatTracker implements Comparable<BeatTracker>, Cloneable {
      * @param timestamp
      *            The tracker timestamp
      */
-    public BeatTracker(double beatDuration, double timestamp) {
+    public Tracker(double beatDuration, double timestamp) {
         if (beatDuration <= 0) {
             throw new IllegalArgumentException(
                     "The beat duration must be positive");
@@ -216,7 +216,7 @@ class BeatTracker implements Comparable<BeatTracker>, Cloneable {
     }
 
     @Override
-    public int compareTo(BeatTracker other) {
+    public int compareTo(Tracker other) {
         // Compare by start of outer margin
         int comp = Double.compare(
                 this.timestamp - this.beatDuration * OUTER_MARGIN_PRE_FACTOR,
@@ -230,8 +230,8 @@ class BeatTracker implements Comparable<BeatTracker>, Cloneable {
     }
 
     @Override
-    public BeatTracker clone() {
-        return new BeatTracker(beatDuration, timestamp);
+    public Tracker clone() {
+        return new Tracker(beatDuration, timestamp);
     }
 
 }

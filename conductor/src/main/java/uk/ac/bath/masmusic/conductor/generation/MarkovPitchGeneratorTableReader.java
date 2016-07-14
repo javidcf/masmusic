@@ -1,4 +1,4 @@
-package uk.ac.bath.masmusic.conductor.generate;
+package uk.ac.bath.masmusic.conductor.generation;
 
 import java.io.BufferedReader;
 import java.io.Closeable;
@@ -26,8 +26,7 @@ public class MarkovPitchGeneratorTableReader implements Closeable {
 
     /** Pattern for table entries. */
     static final Pattern ENTRY_PATTERN = Pattern
-            .compile("^\\s*\\(\\s*(?<degree>\\d+)\\s*"
-                    + ",\\s*(?<alter>(?:[-#]?\\s?)*)\\s*"
+            .compile("^\\s*\\(\\s*(?<relPitch>\\d+)\\s*"
                     + ",\\s*\\[\\s*(?<ngram>(?:(?:[+-]?\\s*\\d+)(?:\\s*,\\s*[+-]?\\s*\\d+)*)?)\\s*\\]\\s*\\)\\s*"
                     + "\\:\\s*(?<trans>\\(\\s*[+-]?\\s*\\d+\\s*\\:\\s*\\+?\\s*\\d+\\s*\\)(?:,\\(\\s*[+-]?\\s*\\d+\\s*\\:\\s*\\+?\\s*\\d+\\s*\\))*)\\s*$");
 
@@ -127,30 +126,19 @@ public class MarkovPitchGeneratorTableReader implements Closeable {
         boolean match = matcher.matches();
         if (!match) {
             throw new IOException(
-                    "Expected '(<degree>,<alteration>,<ngram>):(<step>,<count>),...'");
+                    "Expected '(<relPitch>,<ngram>):(<step>,<count>),...'");
         }
-        // Read degree
-        int degree;
+        // Read reltive pitch
+        int relPitch;
         try {
-            degree = Integer.parseUnsignedInt(matcher.group("degree"));
+            relPitch = Integer.parseUnsignedInt(matcher.group("relPitch"));
         } catch (NumberFormatException e) {
             throw new IOException(
-                    "Expected '(<degree>,<alteration>,<ngram>):(<step>,<count>),...'");
+                    "Expected '(<relPitch>,<ngram>):(<step>,<count>),...'");
         }
-        if (degree < 1) {
+        if (relPitch < 0 || relPitch >= 12) {
             throw new IOException(
-                    "Expected '(<degree>,<alteration>,<ngram>):(<step>,<count>),...'");
-        }
-        // Read alteration
-        int alter = 0;
-        String alterStr = matcher.group("alter");
-        for (int i = 0; i < alterStr.length(); i++) {
-            char c = alterStr.charAt(i);
-            if (c == '#') {
-                alter++;
-            } else if (c == '-') {
-                alter--;
-            }
+                    "Expected '(<relPitch>,<ngram>):(<step>,<count>),...'");
         }
         // Read ngram
         List<Integer> ngram;
@@ -159,7 +147,7 @@ public class MarkovPitchGeneratorTableReader implements Closeable {
                     .map(s -> new Integer(s)).collect(Collectors.toList());
         } catch (NumberFormatException e) {
             throw new IOException(
-                    "Expected '(<degree>,<alteration>,<ngram>):(<step>,<count>),...'");
+                    "Expected '(<relPitch>,<ngram>):(<step>,<count>),...'");
         }
         // Read step/count pairs
         Map<Integer, Integer> transitions = new HashMap<>();
@@ -168,7 +156,7 @@ public class MarkovPitchGeneratorTableReader implements Closeable {
             boolean stepCountMatch = stepCountMatcher.matches();
             if (!stepCountMatch) {
                 throw new IOException(
-                        "Expected '(<degree>,<alteration>,<ngram>):(<step>,<count>),...'");
+                        "Expected '(<relPitch>,<ngram>):(<step>,<count>),...'");
             }
             int step;
             int count;
@@ -178,7 +166,7 @@ public class MarkovPitchGeneratorTableReader implements Closeable {
                         .parseUnsignedInt(stepCountMatcher.group("count"));
             } catch (NumberFormatException e) {
                 throw new IOException(
-                        "Expected '(<degree>,<alteration>,<ngram>):(<step>,<count>),...'");
+                        "Expected '(<relPitch>,<ngram>):(<step>,<count>),...'");
             }
             if (!ignoreZeroStep || step != 0) {
                 transitions.put(step, count);
@@ -186,7 +174,7 @@ public class MarkovPitchGeneratorTableReader implements Closeable {
         }
         // Write to table
         if (!transitions.isEmpty()) {
-            table.setEntry(degree, alter, ngram, transitions);
+            table.setEntry(relPitch, ngram, transitions);
         }
     }
 
