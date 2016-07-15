@@ -17,7 +17,6 @@ import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageHandler;
 
 import uk.ac.bath.masmusic.cep.EsperMessageHandler;
-import uk.ac.bath.masmusic.mas.MasMusic;
 import uk.ac.bath.masmusic.protobuf.TimeSpanNote;
 
 /**
@@ -48,9 +47,6 @@ public class MqttIntegration {
     private String  mqttPlayClientId;
     @Value("${mqtt.play.topic}")
     private String  mqttPlayTopic;
-
-    @Autowired
-    private MasMusic masMusic;
 
     @Autowired
     private EsperMessageHandler esperMessageHandler;
