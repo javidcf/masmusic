@@ -11,10 +11,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.io.Resource;
+import org.springframework.stereotype.Component;
 
 import uk.ac.bath.masmusic.cep.PhrasesTracker;
-import uk.ac.bath.masmusic.cep.RhythmDetector;
-import uk.ac.bath.masmusic.cep.ScaleTracker;
 import uk.ac.bath.masmusic.common.Phrase;
 import uk.ac.bath.masmusic.common.Rhythm;
 import uk.ac.bath.masmusic.common.Scale;
@@ -30,6 +29,7 @@ import uk.ac.bath.masmusic.generation.MarkovPitchGeneratorTableReader;
  *
  * @author Javier Dehesa
  */
+@Component
 public class MelodyGenerator {
 
     /** Logger */
@@ -45,10 +45,7 @@ public class MelodyGenerator {
     private ApplicationContext ctx;
 
     @Autowired
-    private RhythmDetector rhythmDetector;
-
-    @Autowired
-    private ScaleTracker scaleTracker;
+    private MasMusic masMusic;
 
     @Autowired
     private PhrasesTracker phrasesTracker;
@@ -56,13 +53,13 @@ public class MelodyGenerator {
     /** Loaded Markov tables. */
     private Map<String, MarkovPitchGeneratorTable> tables;
 
-    public void generateMelody() {
-        Rhythm rhythm = rhythmDetector.getDetectedRhtyhm();
+    public void generateMelody(long timestamp) {
+        Rhythm rhythm = masMusic.getRhythm();
         if (rhythm == null) {
             LOG.warn("Cannot generate melody: rhythm not available");
             return;
         }
-        Scale scale = scaleTracker.getCurrentScale();
+        Scale scale = masMusic.getScale();
         if (scale == null) {
             LOG.warn("Cannot generate melody: scale not available");
             return;
@@ -102,7 +99,18 @@ public class MelodyGenerator {
             }
         }
 
-        // TODO Output the music somewhere/somehow
+        // Play the music
+        int beatDuration = rhythm.getBeat().getDuration();
+        long baseTimestamp = rhythm.nextBar(timestamp);
+        for (int i = 0; i < newPhrase.size(); i++) {
+            ScoreElement element = newPhrase.getElementAt(i);
+            float position = newPhrase.getPositionAt(i);
+            long elementTimestamp = baseTimestamp + Math.round(position * beatDuration);
+            int elementDuration = Math.round(element.getDuration() * beatDuration);
+            for (int pitch : element.getPitches()) {
+                masMusic.play(pitch, MasMusic.DEFAULT_VELOCITY, elementTimestamp, elementDuration);
+            }
+        }
     }
 
     /**

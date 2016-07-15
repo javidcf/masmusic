@@ -2,6 +2,7 @@ package uk.ac.bath.masmusic.mas;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.PostConstruct;
 
@@ -32,6 +33,9 @@ public class MasMusic implements MessageHandler, Runnable {
     /** Logger */
     private static Logger LOG = LoggerFactory.getLogger(MasMusic.class);
 
+    /** Default note velocity. */
+    public static final int DEFAULT_VELOCITY = 64;
+
     /** MasMusic agents. */
     @Autowired
     private List<MasMusicAbstractAgent> agents;
@@ -52,6 +56,12 @@ public class MasMusic implements MessageHandler, Runnable {
     /** Whether the system must finish. */
     private final AtomicBoolean finish;
 
+    /** The current rhythm. */
+    private final AtomicReference<Rhythm> rhythm;
+
+    /** The current scale. */
+    private final AtomicReference<Scale> scale;
+
     /**
      * Constructor.
      */
@@ -60,6 +70,15 @@ public class MasMusic implements MessageHandler, Runnable {
         pitchBuilder = Pitch.newBuilder();
         started = new AtomicBoolean(false);
         finish = new AtomicBoolean(false);
+        rhythm = new AtomicReference<>();
+        scale = new AtomicReference<>();
+    }
+
+    /**
+     * @return The current scale, of null if no scale has been set
+     */
+    public Scale getScale() {
+        return scale.get();
     }
 
     /**
@@ -67,9 +86,17 @@ public class MasMusic implements MessageHandler, Runnable {
      *            The new scale
      */
     public void setScale(Scale scale) {
+        this.scale.set(scale);
         for (MasMusicAbstractAgent agent : agents) {
             agent.setScale(scale);
         }
+    }
+
+    /**
+     * @return The current rhythm, of null if no rhythm has been set
+     */
+    public Rhythm getRhythm() {
+        return rhythm.get();
     }
 
     /**
@@ -77,6 +104,7 @@ public class MasMusic implements MessageHandler, Runnable {
      *            The new rhythm
      */
     public void setRhythm(Rhythm rhythm) {
+        this.rhythm.set(rhythm);
         for (MasMusicAbstractAgent agent : agents) {
             agent.setRhythm(rhythm);
         }
