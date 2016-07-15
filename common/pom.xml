@@ -26,12 +26,6 @@
 	</properties>
 
 	<dependencies>
-		<!-- Spring -->
-		<dependency>
-			<groupId>org.springframework.integration</groupId>
-			<artifactId>spring-integration-mqtt</artifactId>
-		</dependency>
-
 		<!-- Protocol buffers -->
 		<dependency>
 			<groupId>com.google.protobuf</groupId>
