@@ -137,7 +137,7 @@ public class EvictingCircularBuffer<E> extends AbstractList<E> implements Queue<
             if (c.contains(get(i))) {
                 i++;
             } else {
-                remove(i);
+                remove(get(i));
                 mod = true;
             }
         }
@@ -172,7 +172,7 @@ public class EvictingCircularBuffer<E> extends AbstractList<E> implements Queue<
                 ? a
                 : (T[]) Array.newInstance(a.getClass().getComponentType(), size());
         for (int i = 0; i < size(); i++) {
-            a[i] = (T) get(i);
+            r[i] = (T) get(i);
         }
         if (r.length > size()) {
             r[size()] = null;
