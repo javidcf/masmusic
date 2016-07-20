@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.integration.annotation.IntegrationComponentScan;
 import org.springframework.integration.channel.DirectChannel;
+import org.springframework.integration.channel.PublishSubscribeChannel;
 import org.springframework.integration.dsl.IntegrationFlow;
 import org.springframework.integration.dsl.IntegrationFlows;
 import org.springframework.integration.endpoint.MessageProducerSupport;
@@ -17,6 +18,7 @@ import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageHandler;
 
 import uk.ac.bath.masmusic.cep.EsperMessageHandler;
+import uk.ac.bath.masmusic.mas.MasMusic;
 import uk.ac.bath.masmusic.protobuf.TimeSpanNote;
 
 /**
@@ -27,7 +29,7 @@ import uk.ac.bath.masmusic.protobuf.TimeSpanNote;
 @Configuration
 @IntegrationComponentScan
 //@EnableIntegration // Is this necessary?
-public class MqttIntegration {
+public class MqttConfiguration {
 
     @Value("${mqtt.username}")
     private String  mqttUsername;
@@ -51,6 +53,9 @@ public class MqttIntegration {
     @Autowired
     private EsperMessageHandler esperMessageHandler;
 
+    @Autowired
+    private MasMusic masMusic;
+
     /**
      * @return MQTT client factory
      */
@@ -68,7 +73,7 @@ public class MqttIntegration {
      */
     @Bean
     public MessageChannel hearChannel() {
-        return new DirectChannel();
+        return new PublishSubscribeChannel();
     }
 
     /**
@@ -85,10 +90,18 @@ public class MqttIntegration {
     }
 
     /**
-     * @return MQTT hear flow
+     * @return MQTT hear MasMusic flow
      */
     @Bean
-    public IntegrationFlow hearFlow() {
+    public IntegrationFlow hearMasMusicFlow() {
+        return IntegrationFlows.from(hearChannel()).handle(masMusic).get();
+    }
+
+    /**
+     * @return MQTT hear Esper flow
+     */
+    @Bean
+    public IntegrationFlow hearEsperFlow() {
         return IntegrationFlows.from(hearChannel()).handle(esperMessageHandler).get();
     }
 

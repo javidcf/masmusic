@@ -19,7 +19,6 @@ import uk.ac.bath.masmusic.common.Scale;
 import uk.ac.bath.masmusic.integration.MusicGateway;
 import uk.ac.bath.masmusic.protobuf.Note;
 import uk.ac.bath.masmusic.protobuf.Pitch;
-import uk.ac.bath.masmusic.protobuf.TimePointNote;
 import uk.ac.bath.masmusic.protobuf.TimeSpanNote;
 
 /**
@@ -147,14 +146,12 @@ public class MasMusic implements MessageHandler, Runnable {
 
     @Override
     public void handleMessage(Message<?> message) throws MessagingException {
-        LOG.warn("MasMusic message handling not implemented");
-        /*
         Object payload = message.getPayload();
-        if (payload instanceof TimePointNote) {
-            handleNoteMessage((TimePointNote) payload);
+        if (!(payload instanceof TimeSpanNote)) {
+            LOG.error("Unexpected message type");
+            return;
         }
-        */
-
+        handleNoteMessage((TimeSpanNote) payload);
     }
 
     /**
@@ -163,7 +160,7 @@ public class MasMusic implements MessageHandler, Runnable {
      * @param note
      *            Received note message
      */
-    private void handleNoteMessage(TimePointNote note) {
+    private void handleNoteMessage(TimeSpanNote note) {
         int octave = note.getPitch().getOctave();
         int baseNoteValue = note.getPitch().getNote().getNumber();
         int pitchValue = (octave + 1) * 12 + baseNoteValue;

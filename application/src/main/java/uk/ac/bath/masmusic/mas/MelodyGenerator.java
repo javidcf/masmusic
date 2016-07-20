@@ -2,6 +2,7 @@ package uk.ac.bath.masmusic.mas;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -51,7 +52,14 @@ public class MelodyGenerator {
     private PhrasesTracker phrasesTracker;
 
     /** Loaded Markov tables. */
-    private Map<String, MarkovPitchGeneratorTable> tables;
+    private final Map<String, MarkovPitchGeneratorTable> tables;
+
+    /**
+     * Constructor.
+     */
+    public MelodyGenerator() {
+        tables = new HashMap<>();
+    }
 
     public void generateMelody(long timestamp) {
         Rhythm rhythm = masMusic.getRhythm();

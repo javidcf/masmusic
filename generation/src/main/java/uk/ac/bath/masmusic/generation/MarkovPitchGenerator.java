@@ -81,7 +81,7 @@ public class MarkovPitchGenerator {
         if (step == null) {
             // Random walk
             int degree = scale.degreeWithAlterationOf(currentNote);
-            int nextDegree = (((degree - 1) + (RNG.nextBoolean() ? -1 : +1)) % scale.size()) + 1;
+            int nextDegree = Math.floorMod(((degree - 1) + (RNG.nextBoolean() ? -1 : +1)), scale.size()) + 1;
             Note nextNote = scale.getNote(nextDegree);
             step = currentNote.distanceTo(nextNote);
         }
