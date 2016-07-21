@@ -32,8 +32,7 @@ import uk.ac.bath.masmusic.common.Scale;
 public abstract class MasMusicAbstractAgent extends AgArch {
 
     /** Logger */
-    private static Logger LOG = LoggerFactory
-            .getLogger(MasMusicAbstractAgent.class);
+    private static Logger LOG = LoggerFactory.getLogger(MasMusicAbstractAgent.class);
 
     /** Default note velocity. */
     public static final int DEFAULT_VELOCITY = 64;
@@ -53,6 +52,7 @@ public abstract class MasMusicAbstractAgent extends AgArch {
     /** Event for scale. */
     public static final String SCALE_EVENT = "scale";
 
+    /** Event for rhythm. */
     private static final String RHYTHM_EVENT = "rhythm";
 
     /** MasMusic multi-agent system. */

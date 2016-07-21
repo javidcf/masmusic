@@ -31,6 +31,12 @@ public class MarkovPitchGenerator {
     /** Last ngram. */
     private final EvictingCircularBuffer<Integer> ngram;
 
+    /** Low bound for pitch values. */
+    private int pitchBoundLow = Integer.MIN_VALUE;
+
+    /** High bound for pitch values. */
+    private int pitchBoundHigh = Integer.MAX_VALUE;
+
     /**
      * Constructor.
      *
@@ -40,7 +46,7 @@ public class MarkovPitchGenerator {
      *            The scale used to generate the melody
      */
     public MarkovPitchGenerator(MarkovPitchGeneratorTable table, Scale scale) {
-        this(table, scale, 0);
+        this(table, scale, 60 + scale.getFundamental().value());
     }
 
     /**
@@ -49,15 +55,32 @@ public class MarkovPitchGenerator {
      * @param table
      *            The Markov table used by the generator
      * @param scale
-     *            The scale on which the music is generated
-     * @param scale
      *            The scale used to generate the melody
+     * @param initialPitch
+     *            Initial pitch of the generated melody
      */
-    public MarkovPitchGenerator(MarkovPitchGeneratorTable table, Scale scale, int initialPitch) {
+    public MarkovPitchGenerator(MarkovPitchGeneratorTable table, Scale scale,
+            int initialPitch) {
         this.table = table;
         this.scale = scale;
         this.currentPitch = initialPitch;
         this.ngram = new EvictingCircularBuffer<>(table.getOrder());
+    }
+
+    /**
+     * Set the limits for the generated pitch values.
+     *
+     * @param low
+     *            Pitch low bound (inclusive)
+     * @param high
+     *            Pitch high bound (inclusive)
+     */
+    public void setPitchBounds(int low, int high) {
+        if (high - low < 11) {
+            throw new IllegalArgumentException("The bounds must encompass at least one octave");
+        }
+        pitchBoundLow = low;
+        pitchBoundHigh = high;
     }
 
     /**
@@ -81,12 +104,21 @@ public class MarkovPitchGenerator {
         if (step == null) {
             // Random walk
             int degree = scale.degreeWithAlterationOf(currentNote);
-            int nextDegree = Math.floorMod(((degree - 1) + (RNG.nextBoolean() ? -1 : +1)), scale.size()) + 1;
+            int nextDegree = Math.floorMod(
+                    ((degree - 1) + (RNG.nextBoolean() ? -1 : +1)),
+                    scale.size()) + 1;
             Note nextNote = scale.getNote(nextDegree);
             step = currentNote.distanceTo(nextNote);
         }
         ngram.add(step);
         currentPitch += step;
+        // Enforce pitch bounds
+        while (currentPitch < pitchBoundLow) {
+            currentPitch += 12;
+        }
+        while (currentPitch > pitchBoundHigh) {
+            currentPitch -= 12;
+        }
         return currentPitch;
     }
 

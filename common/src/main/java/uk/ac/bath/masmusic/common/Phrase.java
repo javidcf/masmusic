@@ -22,7 +22,7 @@ public class Phrase {
      */
     private static class PhraseElement {
         /** Position of the element in the phrase in beats. */
-        final float        position;
+        final double position;
         /** Score element. */
         final ScoreElement scoreElement;
 
@@ -34,7 +34,7 @@ public class Phrase {
          * @param scoreElement
          *            Score element
          */
-        PhraseElement(float position, ScoreElement scoreElement) {
+        PhraseElement(double position, ScoreElement scoreElement) {
             this.position = position;
             this.scoreElement = scoreElement;
         }
@@ -67,7 +67,7 @@ public class Phrase {
      * @param position
      *            Position of the new element in beats
      */
-    public void addElement(ScoreElement element, float position) {
+    public void addElement(ScoreElement element, double position) {
         int index;
         for (index = elements.size(); index > 0 && elements.get(index - 1).position > position; index--) {
         }
@@ -81,7 +81,7 @@ public class Phrase {
      *            Index of the element to query
      * @return Position of the element at the given index in beats
      */
-    public float getPositionAt(int index) {
+    public double getPositionAt(int index) {
         return elements.get(index).position;
     }
 

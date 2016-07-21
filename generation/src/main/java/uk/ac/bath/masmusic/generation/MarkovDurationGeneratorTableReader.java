@@ -15,11 +15,11 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
- * Reader for {@link MarkovPitchGeneratorTable} files.
+ * Reader for {@link MarkovDurationGeneratorTable} files.
  *
  * @author Javier Dehesa
  */
-public class MarkovPitchGeneratorTableReader implements Closeable {
+public class MarkovDurationGeneratorTableReader implements Closeable {
 
     /** Source input stream. */
     private final BufferedReader input;
@@ -27,12 +27,12 @@ public class MarkovPitchGeneratorTableReader implements Closeable {
     /** Pattern for table entries. */
     static final Pattern ENTRY_PATTERN = Pattern
             .compile("^\\s*\\(\\s*(?<relPitch>\\d+)\\s*"
-                    + ",\\s*\\[\\s*(?<ngram>(?:(?:[+-]?\\s*\\d+)(?:\\s*,\\s*[+-]?\\s*\\d+)*)?)\\s*\\]\\s*\\)\\s*"
-                    + "\\:\\s*(?<trans>\\(\\s*[+-]?\\s*\\d+\\s*\\:\\s*\\+?\\s*\\d+\\s*\\)(?:,\\(\\s*[+-]?\\s*\\d+\\s*\\:\\s*\\+?\\s*\\d+\\s*\\))*)\\s*$");
+                    + ",\\s*\\[\\s*(?<ngram>(?:(?:\\d*\\.?\\d+)(?:\\s*,\\s*\\d*\\.?\\d+)*)?)\\s*\\]\\s*\\)\\s*"
+                    + "\\:\\s*(?<trans>\\(\\s*\\d*\\.?\\d+\\s*\\:\\s*\\+?\\s*\\d+\\s*\\)(?:,\\(\\s*\\d*\\.?\\d+\\s*\\:\\s*\\+?\\s*\\d+\\s*\\))*)\\s*$");
 
     /** Pattern for step/count elements */
-    static final Pattern STEP_COUNT_PATTERN = Pattern
-            .compile("^\\s*\\(\\s*(?<step>[+-]?\\d+)\\s*"
+    static final Pattern DURATION_COUNT_PATTERN = Pattern
+            .compile("^\\s*\\(\\s*(?<duration>\\d*\\.?\\d+)\\s*"
                     + "\\:(?<count>\\+?\\s*\\d+)\\s*\\)\\s*$");
 
     /**
@@ -41,7 +41,7 @@ public class MarkovPitchGeneratorTableReader implements Closeable {
      * @param input
      *            Source stream
      */
-    public MarkovPitchGeneratorTableReader(InputStream input) {
+    public MarkovDurationGeneratorTableReader(InputStream input) {
         this.input = new BufferedReader(new InputStreamReader(input));
     }
 
@@ -51,32 +51,21 @@ public class MarkovPitchGeneratorTableReader implements Closeable {
      * @param input
      *            Source stream
      */
-    public MarkovPitchGeneratorTableReader(Reader input) {
+    public MarkovDurationGeneratorTableReader(Reader input) {
         this.input = new BufferedReader(input);
     }
 
     /**
      * @return The generator table contained in the input
      */
-    public MarkovPitchGeneratorTable readTable() throws IOException {
-        return readTable(false);
-    }
-
-    /**
-     * @param ignoreZeroStep
-     *            Whether table entries corresponding to a step of zero should
-     *            be ignored
-     * @return The generator table contained in the input
-     */
-    public MarkovPitchGeneratorTable readTable(boolean ignoreZeroStep)
-            throws IOException {
+    public MarkovDurationGeneratorTable readTable() throws IOException {
         int order = readOrder();
-        MarkovPitchGeneratorTable table = new MarkovPitchGeneratorTable(order);
+        MarkovDurationGeneratorTable table = new MarkovDurationGeneratorTable(order);
         String line = input.readLine();
         while (line != null) {
             line = line.trim();
             if (!line.isEmpty()) {
-                readTableEntry(line, table, ignoreZeroStep);
+                readTableEntry(line, table);
             }
             line = input.readLine();
         }
@@ -113,58 +102,51 @@ public class MarkovPitchGeneratorTableReader implements Closeable {
      *            The line containing the entry
      * @param table
      *            The table where the entry is written to
-     * @param ignoreZeroStep
-     *            Whether table entries corresponding to a step of zero should
-     *            be ignored
      * @throws IOException
      *             If the next input is not a table entry
      */
-    private void readTableEntry(String line, MarkovPitchGeneratorTable table,
-            boolean ignoreZeroStep)
+    private void readTableEntry(String line, MarkovDurationGeneratorTable table)
             throws IOException {
         Matcher matcher = ENTRY_PATTERN.matcher(line);
         boolean match = matcher.matches();
         if (!match) {
-            throw new IOException("Expected '(<relPitch>,<ngram>):(<step>:<count>),...'");
+            throw new IOException("Expected '(<relPitch>,<ngram>):(<duration>:<count>),...'");
         }
         // Read reltive pitch
         int relPitch;
         try {
             relPitch = Integer.parseUnsignedInt(matcher.group("relPitch"));
         } catch (NumberFormatException e) {
-            throw new IOException("Expected '(<relPitch>,<ngram>):(<step>:<count>),...'");
+            throw new IOException("Expected '(<relPitch>,<ngram>):(<duration>:<count>),...'");
         }
         if (relPitch < 0 || relPitch >= 12) {
-            throw new IOException("Expected '(<relPitch>,<ngram>):(<step>:<count>),...'");
+            throw new IOException("Expected '(<relPitch>,<ngram>):(<duration>:<count>),...'");
         }
         // Read ngram
-        List<Integer> ngram;
+        List<Double> ngram;
         try {
             ngram = Arrays.stream(matcher.group("ngram").split(","))
-                    .map(s -> new Integer(s)).collect(Collectors.toList());
+                    .map(s -> new Double(s)).collect(Collectors.toList());
         } catch (NumberFormatException e) {
-            throw new IOException("Expected '(<relPitch>,<ngram>):(<step>:<count>),...'");
+            throw new IOException("Expected '(<relPitch>,<ngram>):(<duration>:<count>),...'");
         }
         // Read step/count pairs
-        Map<Integer, Integer> transitions = new HashMap<>();
+        Map<Double, Integer> transitions = new HashMap<>();
         for (String stepCount : matcher.group("trans").split(",")) {
-            Matcher stepCountMatcher = STEP_COUNT_PATTERN.matcher(stepCount);
+            Matcher stepCountMatcher = DURATION_COUNT_PATTERN.matcher(stepCount);
             boolean stepCountMatch = stepCountMatcher.matches();
             if (!stepCountMatch) {
-                throw new IOException("Expected '(<relPitch>,<ngram>):(<step>:<count>),...'");
+                throw new IOException("Expected '(<relPitch>,<ngram>):(<duration>:<count>),...'");
             }
-            int step;
+            double duration;
             int count;
             try {
-                step = Integer.parseInt(stepCountMatcher.group("step"));
-                count = Integer
-                        .parseUnsignedInt(stepCountMatcher.group("count"));
+                duration = Double.parseDouble(stepCountMatcher.group("duration"));
+                count = Integer.parseUnsignedInt(stepCountMatcher.group("count"));
             } catch (NumberFormatException e) {
-                throw new IOException("Expected '(<relPitch>,<ngram>):(<step>:<count>),...'");
+                throw new IOException("Expected '(<relPitch>,<ngram>):(<duration>:<count>),...'");
             }
-            if (!ignoreZeroStep || step != 0) {
-                transitions.put(step, count);
-            }
+            transitions.put(duration, count);
         }
         // Write to table
         if (!transitions.isEmpty()) {
