@@ -7,14 +7,15 @@
 /* Plans */
 
 +!perform(PERFORM_START, PERFORM_BARS, HEAR_TIMESTAMP)
-   : lastHeardNote(HEAR_TIMESTAMP)
-    <- ?rhythm(BEAT_DURATION, BEAT_PHASE, BAR_BEATS, BAR_UNIT, BAR_BEAT_OFFSET);
-       ?scale(FUNDAMENTAL, SCALE);
-       compose(PERFORM_START, PERFORM_BARS,
+    :  lastHeardNote(HEAR_TIMESTAMP)
+     & rhythm(BEAT_DURATION, BEAT_PHASE, BAR_BEATS, BAR_UNIT, BAR_BEAT_OFFSET)
+     & scale(FUNDAMENTAL, SCALE)
+    <- compose(PERFORM_START, PERFORM_BARS,
                BEAT_DURATION, BEAT_PHASE, BAR_BEATS, BAR_UNIT, BAR_BEAT_OFFSET,
                FUNDAMENTAL, SCALE);
-       .wait(BEAT_DURATION * BAR_BEATS * PERFORM_BARS);
-       !!perform(system.time, PERFORM_BARS, HEAR_TIMESTAMP).
+       WAIT = BEAT_DURATION * BAR_BEATS * PERFORM_BARS;
+       .wait(math.max(PERFORM_START + WAIT - system.time, 1));
+       !!perform(PERFORM_START + WAIT, PERFORM_BARS, HEAR_TIMESTAMP).
 
 // No-op
 +!perform(_, _, _).       
@@ -27,8 +28,8 @@
 
 +!programPerformance(HEAR_TIMESTAMP)
     : lastHeardNote(HEAR_TIMESTAMP)
-    <- .wait(math.max(system.time + 2000 - HEAR_TIMESTAMP, 0));
-       !!perform(system.time, 16, HEAR_TIMESTAMP).
+    <- .wait(math.max(HEAR_TIMESTAMP + 2000 - system.time, 1));
+       !!perform(system.time, 1, HEAR_TIMESTAMP).
 
 // No-op
 +!programPerformance(_).      

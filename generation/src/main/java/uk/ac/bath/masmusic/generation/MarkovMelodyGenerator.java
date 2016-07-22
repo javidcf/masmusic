@@ -28,6 +28,9 @@ public class MarkovMelodyGenerator {
     /** Duration generator. */
     private final MarkovDurationGenerator durationGenerator;
 
+    /** Melody scale. */
+    private final Scale scale;
+
     /** Last generated element. */
     private ScoreElement currentElement;
 
@@ -64,7 +67,15 @@ public class MarkovMelodyGenerator {
             Scale scale, int initialPitch, float initialDuration) {
         this.pitchGenerator = new MarkovPitchGenerator(pitchTable, scale, initialPitch);
         this.durationGenerator = new MarkovDurationGenerator(durationTable, scale, initialDuration);
+        this.scale = scale;
         this.currentElement = new ScoreElement(initialDuration, Collections.singleton(initialPitch));
+    }
+
+    /**
+     * @return The generator scale
+     */
+    public Scale getScale() {
+        return scale;
     }
 
     /**

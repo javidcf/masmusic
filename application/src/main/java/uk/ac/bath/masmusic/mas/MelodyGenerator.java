@@ -1,9 +1,7 @@
 package uk.ac.bath.masmusic.mas;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -13,6 +11,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 
+import uk.ac.bath.masmusic.common.Phrase;
 import uk.ac.bath.masmusic.common.Scale;
 import uk.ac.bath.masmusic.common.ScoreElement;
 import uk.ac.bath.masmusic.generation.MarkovDurationGeneratorTable;
@@ -55,12 +54,20 @@ public class MelodyGenerator {
     /** Loaded duration Markov tables. */
     private final Map<String, MarkovDurationGeneratorTable> durationTables;
 
+    /** Melody generator. */
+    private MarkovMelodyGenerator melodyGenerator;
+
+    /** Offset for the next generation of melody */
+    private double generationOffset;
+
     /**
      * Constructor.
      */
     public MelodyGenerator() {
         pitchTables = new HashMap<>();
         durationTables = new HashMap<>();
+        melodyGenerator = null;
+        generationOffset = .0;
     }
 
     /**
@@ -70,9 +77,10 @@ public class MelodyGenerator {
      *            Scale of the generated melody
      * @param beats
      *            Duration of the melody in beats
+     * @return The generated melody
      */
-    public List<ScoreElement> generateMelody(Scale scale, int beats) {
-        LOG.debug("Generating {} beats of melody in scale {}", beats, scale);
+    public Phrase generateMelody(Scale scale, int beats) {
+        LOG.debug("Generating {} beats of melody in {}", beats, scale);
         String scaleType = scale.getName();
         MarkovPitchGeneratorTable pitchTable = getPitchTable(scaleType);
         if (pitchTable == null) {
@@ -83,24 +91,22 @@ public class MelodyGenerator {
             throw new IllegalArgumentException("No duration table available for scale type '" + scaleType + "'");
         }
 
+        // Create a new generator if necessary
+        if (melodyGenerator == null || !melodyGenerator.getScale().equals(scale)) {
+            melodyGenerator = new MarkovMelodyGenerator(pitchTable, durationTable, scale);
+            melodyGenerator.setPitchBounds(PITCH_BOUND_LOW, PITCH_BOUND_HIGH);
+            generationOffset = .0;
+        }
         // Generate music
-        MarkovMelodyGenerator melodyGenerator = new MarkovMelodyGenerator(pitchTable, durationTable, scale);
-        melodyGenerator.setPitchBounds(PITCH_BOUND_LOW, PITCH_BOUND_HIGH);
-        double generatedLength = .0;
-        List<ScoreElement> generatedElements = new ArrayList<>();
-        ScoreElement generated = melodyGenerator.getCurrentElement();
-        while (generatedLength + generated.getDuration() <= beats) {
-            generatedElements.add(generated);
+        Phrase generatedPhrase = new Phrase();
+        double generatedLength = generationOffset;
+        while (generatedLength < beats) {
+            ScoreElement generated = melodyGenerator.generateElement();
+            generatedPhrase.addElement(generated, generatedLength);
             generatedLength += generated.getDuration();
-            generated = melodyGenerator.generateElement();
         }
-        double gap = beats - generatedLength;
-        if (gap >= .25) {
-            // Add the last generated element to fill the gap
-            ScoreElement filler = new ScoreElement(gap, generated.getPitches());
-            generatedElements.add(filler);
-        }
-        return generatedElements;
+        generationOffset = generatedLength - beats;
+        return generatedPhrase;
     }
 
     /**

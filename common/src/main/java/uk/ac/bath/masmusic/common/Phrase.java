@@ -1,6 +1,7 @@
 package uk.ac.bath.masmusic.common;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -11,20 +12,20 @@ import java.util.List;
  * @author Javier Dehesa
  *
  */
-public class Phrase {
+public class Phrase implements Iterable<Phrase.Element> {
 
-    private final List<PhraseElement> elements;
+    private final List<Element> elements;
 
     /**
      * An element of a phrase.
      *
      * @author Javier Dehesa
      */
-    private static class PhraseElement {
+    public static class Element {
         /** Position of the element in the phrase in beats. */
-        final double position;
+        private final double position;
         /** Score element. */
-        final ScoreElement scoreElement;
+        private final ScoreElement scoreElement;
 
         /**
          * Constructor.
@@ -34,9 +35,23 @@ public class Phrase {
          * @param scoreElement
          *            Score element
          */
-        PhraseElement(double position, ScoreElement scoreElement) {
+        Element(double position, ScoreElement scoreElement) {
             this.position = position;
             this.scoreElement = scoreElement;
+        }
+
+        /**
+         * @return The position of the element in the phrase in beats
+         */
+        public double getPosition() {
+            return position;
+        }
+
+        /**
+         * @return The score element
+         */
+        public ScoreElement getScoreElement() {
+            return scoreElement;
         }
 
         @Override
@@ -71,7 +86,7 @@ public class Phrase {
         int index;
         for (index = elements.size(); index > 0 && elements.get(index - 1).position > position; index--) {
         }
-        elements.add(index, new PhraseElement(position, element));
+        elements.add(index, new Element(position, element));
     }
 
     /**
@@ -94,6 +109,11 @@ public class Phrase {
      */
     public ScoreElement getElementAt(int index) {
         return elements.get(index).scoreElement;
+    }
+
+    @Override
+    public Iterator<Element> iterator() {
+        return elements.iterator();
     }
 
     @Override

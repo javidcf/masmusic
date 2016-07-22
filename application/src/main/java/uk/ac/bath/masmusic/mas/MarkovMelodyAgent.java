@@ -1,7 +1,5 @@
 package uk.ac.bath.masmusic.mas;
 
-import java.util.List;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +9,7 @@ import jason.asSemantics.ActionExec;
 import jason.asSyntax.Structure;
 import uk.ac.bath.masmusic.common.Beat;
 import uk.ac.bath.masmusic.common.Note;
+import uk.ac.bath.masmusic.common.Phrase;
 import uk.ac.bath.masmusic.common.Rhythm;
 import uk.ac.bath.masmusic.common.Scale;
 import uk.ac.bath.masmusic.common.ScoreElement;
@@ -59,19 +58,28 @@ public class MarkovMelodyAgent extends MasMusicAbstractAgent {
             int barBeatOffset = Integer.parseInt(actionTerm.getTerm(6).toString());
             int fundamental = Integer.parseInt(actionTerm.getTerm(7).toString());
             String scaleName = actionTerm.getTerm(8).toString();
-            Rhythm rhythm = new Rhythm(new Beat(beatDuration, beatPhase),
-                    new TimeSignature(barBeats, barUnit), barBeatOffset);
+            Beat beat = new Beat(beatDuration, beatPhase);
+            TimeSignature timeSignature = new TimeSignature(barBeats, barUnit);
+            Rhythm rhythm = new Rhythm(beat, timeSignature, barBeatOffset);
             Scale scale = new Scale(Note.fromValue(fundamental), scaleName);
 
             // Generate melody and play it
-            List<ScoreElement> generated = melodyGenerator.generateMelody(scale, barBeats * bars);
-            long currentTimestamp = rhythm.nextBar(start);
-            for (ScoreElement element : generated) {
-                int duration = (int) Math.round(element.getDuration() * rhythm.getBeat().getDuration());
-                for (int pitch : element.getPitches()) {
-                    masMusic.play(pitch, MasMusic.DEFAULT_VELOCITY, currentTimestamp, duration);
+            Phrase generated = melodyGenerator.generateMelody(scale, barBeats * bars);
+            long baseTimestamp = rhythm.nextBar(start);
+            int snapTolerance = Math.round(.125f * beat.getDuration());
+            for (Phrase.Element phraseElement : generated) {
+                double position = phraseElement.getPosition();
+                ScoreElement scoreElement = phraseElement.getScoreElement();
+                int elementDuration = (int) Math.round(scoreElement.getDuration() * beat.getDuration());
+                long elementStart = baseTimestamp + Math.round(position * beat.getDuration());
+                // Snap start to a beat if it is close
+                long elementStartSnap = beat.closestBeat(elementStart);
+                if (Math.abs(elementStartSnap - elementStart) < snapTolerance) {
+                    elementStart = elementStartSnap;
                 }
-                currentTimestamp += duration;
+                for (int pitch : scoreElement.getPitches()) {
+                    masMusic.play(pitch, MasMusic.DEFAULT_VELOCITY, elementStart, elementDuration);
+                }
             }
             return true;
         } else {
