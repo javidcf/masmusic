@@ -221,7 +221,7 @@ public abstract class MasMusicAbstractAgent extends AgArch {
      */
     public void setScale(Scale scale) {
         currentScale = Literal.parseLiteral(String.format("%s(%d, %s)",
-                SCALE_EVENT, scale.getFundamental().value(), scale.getName().toLowerCase()));
+                SCALE_EVENT, scale.getFundamental().value(), scale.getType().toLowerCase()));
     }
 
     /**

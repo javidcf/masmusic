@@ -16,8 +16,8 @@ public class Scale {
     /** Fundamental note of the scale. */
     private final Note fundamental;
 
-    /** Scale name. */
-    private final String name;
+    /** Scale type. */
+    private final String type;
 
     /** Intervals of the scale. */
     private final int[] intervals;
@@ -32,14 +32,14 @@ public class Scale {
      * A scale type.
      */
     private static class ScaleType {
-        final String name;
+        final String type;
         final int[]  intervals;
 
-        ScaleType(String name, int[] intervals) {
+        ScaleType(String type, int[] intervals) {
             if (intervals.length < 1) {
                 throw new IllegalArgumentException("A scale must have at least one interval");
             }
-            this.name = name;
+            this.type = type;
             this.intervals = intervals;
         }
     }
@@ -51,12 +51,12 @@ public class Scale {
      *
      * @param fundamental
      *            Fundamental note of the scale
-     * @param name
-     *            Name of the scale
+     * @param type
+     *            Type name of the scale
      */
-    public Scale(Note fundamental, String name) {
-        this(fundamental, name,
-                getScaleTypes().get(name.trim().toLowerCase()).intervals);
+    public Scale(Note fundamental, String type) {
+        this(fundamental, type,
+                getScaleTypes().get(type.trim().toLowerCase()).intervals);
     }
 
     /**
@@ -64,12 +64,12 @@ public class Scale {
      *
      * @param fundamental
      *            Fundamental note of the scale
-     * @param name
-     *            Name of the scale
+     * @param type
+     *            Type name of the scale
      * @param intervals
      *            Intervals of the scale
      */
-    public Scale(Note fundamental, String name, int[] intervals) {
+    public Scale(Note fundamental, String type, int[] intervals) {
         if (intervals.length < 1) {
             throw new IllegalArgumentException("A scale must have at least one interval");
         }
@@ -80,16 +80,16 @@ public class Scale {
             }
             lastInterval = interval;
         }
-        this.name = name;
+        this.type = type;
         this.fundamental = fundamental;
         this.intervals = intervals;
     }
 
     /**
-     * @return The name of the scale.
+     * @return The type of the scale.
      */
-    public String getName() {
-        return name;
+    public String getType() {
+        return type;
     }
 
     /**
@@ -209,7 +209,7 @@ public class Scale {
 
     @Override
     public String toString() {
-        return "Scale [" + fundamental + " " + name + "]";
+        return "Scale [" + fundamental + " " + type + "]";
     }
 
     @Override
@@ -273,8 +273,7 @@ public class Scale {
         scales = new HashSet<>();
         for (Note note : Note.values()) {
             for (ScaleType scaleType : getScaleTypes().values()) {
-                scales.add(
-                        new Scale(note, scaleType.name, scaleType.intervals));
+                scales.add(new Scale(note, scaleType.type, scaleType.intervals));
             }
         }
         return scales;

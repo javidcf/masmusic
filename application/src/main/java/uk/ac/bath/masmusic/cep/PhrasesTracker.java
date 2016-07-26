@@ -74,7 +74,8 @@ public class PhrasesTracker extends EsperStatementSubscriber {
     public String getStatementQuery() {
         return "select"
                 // + " Math.round(avg(timestamp)) as timestamp"
-                + " noteOnset(*) as onset" + " from TimeSpanNote.win:time(" + ANALYSIS_WINDOW + " msec) "
+                + " noteOnset(*) as onset"
+                + " from TimeSpanNote.win:time(" + ANALYSIS_WINDOW + " msec) "
                 // + " group by Math.round(timestamp / " + QUANTIZATION + ")"
                 + " output snapshot every " + ANALYSIS_FREQUENCY + " msec" + " order by timestamp asc";
     }

@@ -77,7 +77,7 @@ public class MelodyGenerator {
             LOG.warn("Cannot generate melody: no phrases detected");
             return;
         }
-        String scaleType = scale.getName();
+        String scaleType = scale.getType();
         MarkovPitchGeneratorTable table = getMarkovTable(scaleType);
         if (table == null) {
             LOG.warn("Cannot generate melody: Markov table not available");

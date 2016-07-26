@@ -20,7 +20,7 @@
 
 +!programPerformance
     : lastHeardNote(T)
-    <- .wait(math.max(system.time + 1000 - T, 0));
+    <- .wait(math.max(system.time + 2000 - T, 0));
        ?lastHeardNote(T);
        !perform(system.time, 1).
 

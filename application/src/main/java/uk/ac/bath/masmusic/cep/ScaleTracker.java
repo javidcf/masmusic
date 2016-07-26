@@ -11,7 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import uk.ac.bath.masmusic.analysis.scale.ScaleInducer;
-import uk.ac.bath.masmusic.common.Note;
+import uk.ac.bath.masmusic.common.Onset;
 import uk.ac.bath.masmusic.common.Scale;
 import uk.ac.bath.masmusic.mas.MasMusic;
 import uk.ac.bath.masmusic.protobuf.TimeSpanNote;
@@ -42,8 +42,8 @@ public class ScaleTracker extends EsperStatementSubscriber {
     /** Scale inducer. */
     private final ScaleInducer scaleInducer;
 
-    /** Notes list. */
-    private final List<Note> notes;
+    /** Onsets list. */
+    private final List<Onset> onsets;
 
     /** Current scale. */
     private final AtomicReference<Scale> scale;
@@ -53,7 +53,7 @@ public class ScaleTracker extends EsperStatementSubscriber {
      */
     public ScaleTracker() {
         scaleInducer = new ScaleInducer();
-        notes = new ArrayList<>();
+        onsets = new ArrayList<>();
         scale = new AtomicReference<>(null);
     }
 
@@ -66,9 +66,7 @@ public class ScaleTracker extends EsperStatementSubscriber {
     public String getStatementQuery() {
         return "select"
                 // + " Math.round(avg(timestamp)) as timestamp"
-                + " timestamp"
-                + ", pitch.note.getNumber() as noteNumber"
-                + ", pitch.octave as octave"
+                + " noteOnset(*) as onset"
                 + " from TimeSpanNote.win:time(" + ANALYSIS_WINDOW + " msec) "
                 // + " group by Math.round(timestamp / " + QUANTIZATION + ")"
                 + " output snapshot every " + ANALYSIS_FREQUENCY + " msec"
@@ -84,7 +82,7 @@ public class ScaleTracker extends EsperStatementSubscriber {
      *            Number of elements in the previous delivery
      */
     public void updateStart(int countNew, int countOld) {
-        notes.clear();
+        onsets.clear();
     }
 
     /**
@@ -93,15 +91,15 @@ public class ScaleTracker extends EsperStatementSubscriber {
      * @param eventMap
      *            Query event data
      */
-    public void update(Map<String, Object> eventMap) {
-        notes.add(Note.fromValue((Integer) eventMap.get("noteNumber")));
+    public void update(Map<String, Onset> eventMap) {
+        onsets.add(eventMap.get("onset"));
     }
 
     /**
      * Finish event delivery.
      */
     public void updateEnd() {
-        Scale newScale = scaleInducer.induceScale(notes);
+        Scale newScale = scaleInducer.induceScale(onsets);
         if (newScale != null) {
             LOG.debug("New scale: {}", newScale);
             scale.set(newScale);
