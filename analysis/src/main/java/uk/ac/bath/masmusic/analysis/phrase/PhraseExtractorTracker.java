@@ -19,7 +19,7 @@ public class PhraseExtractorTracker implements Comparable<PhraseExtractorTracker
     private float initialPosition;
 
     /** Position of the tracker in beats. */
-    private float position;
+    private double position;
 
     /** Lowest pitch in the tracked phrase. */
     private int lowestPitch;
@@ -61,7 +61,7 @@ public class PhraseExtractorTracker implements Comparable<PhraseExtractorTracker
     /**
      * @return The position of the tracker in beats
      */
-    public float getPosition() {
+    public double getPosition() {
         return position;
     }
 
@@ -90,8 +90,8 @@ public class PhraseExtractorTracker implements Comparable<PhraseExtractorTracker
      * @param elementPosition
      *            Position of the added element in beats
      */
-    public void addElement(ScoreElement element, float elementPosition) {
-        float phraseElementPosition = elementPosition - initialPosition;
+    public void addElement(ScoreElement element, double elementPosition) {
+        double phraseElementPosition = elementPosition - initialPosition;
         phrase.addElement(element, phraseElementPosition);
         position = elementPosition + element.getDuration();
         for (int pitch : element.getPitches()) {
@@ -103,7 +103,7 @@ public class PhraseExtractorTracker implements Comparable<PhraseExtractorTracker
 
     @Override
     public int compareTo(PhraseExtractorTracker that) {
-        int cmp = Float.compare(this.position, that.position);
+        int cmp = Double.compare(this.position, that.position);
         if (cmp != 0) {
             return cmp;
         }

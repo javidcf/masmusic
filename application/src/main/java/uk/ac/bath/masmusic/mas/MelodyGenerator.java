@@ -1,11 +1,8 @@
 package uk.ac.bath.masmusic.mas;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Random;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,12 +11,12 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 
-import uk.ac.bath.masmusic.cep.PhrasesTracker;
 import uk.ac.bath.masmusic.common.Phrase;
-import uk.ac.bath.masmusic.common.Rhythm;
 import uk.ac.bath.masmusic.common.Scale;
 import uk.ac.bath.masmusic.common.ScoreElement;
-import uk.ac.bath.masmusic.generation.MarkovPitchGenerator;
+import uk.ac.bath.masmusic.generation.MarkovDurationGeneratorTable;
+import uk.ac.bath.masmusic.generation.MarkovDurationGeneratorTableReader;
+import uk.ac.bath.masmusic.generation.MarkovMelodyGenerator;
 import uk.ac.bath.masmusic.generation.MarkovPitchGeneratorTable;
 import uk.ac.bath.masmusic.generation.MarkovPitchGeneratorTableReader;
 
@@ -36,108 +33,119 @@ public class MelodyGenerator {
     /** Logger */
     private static Logger LOG = LoggerFactory.getLogger(MelodyGenerator.class);
 
-    /** RNG. */
-    private final static Random RNG = new Random();
+    /** String format for pitch table resources. */
+    private static final String PITCH_TABLE_RESOURCE_FORMAT = "classpath:generation/%s.pit";
 
-    /** String format for table resources. */
-    private static final String TABLE_RESOURCE_FORMAT = "classpath:generation/%s.tab";
+    /** String format for duration table resources. */
+    private static final String DURATION_TABLE_RESOURCE_FORMAT = "classpath:generation/%s.dur";
+
+    /** Low bound for pitch values. */
+    private final static int PITCH_BOUND_LOW = 36;
+
+    /** High bound for pitch values. */
+    private final static int PITCH_BOUND_HIGH = 84;
 
     @Autowired
     private ApplicationContext ctx;
 
-    @Autowired
-    private MasMusic masMusic;
+    /** Loaded pitch Markov tables. */
+    private final Map<String, MarkovPitchGeneratorTable> pitchTables;
 
-    @Autowired
-    private PhrasesTracker phrasesTracker;
+    /** Loaded duration Markov tables. */
+    private final Map<String, MarkovDurationGeneratorTable> durationTables;
 
-    /** Loaded Markov tables. */
-    private final Map<String, MarkovPitchGeneratorTable> tables;
+    /** Melody generator. */
+    private MarkovMelodyGenerator melodyGenerator;
+
+    /** Offset for the next generation of melody */
+    private double generationOffset;
 
     /**
      * Constructor.
      */
     public MelodyGenerator() {
-        tables = new HashMap<>();
+        pitchTables = new HashMap<>();
+        durationTables = new HashMap<>();
+        melodyGenerator = null;
+        generationOffset = .0;
     }
 
-    public void generateMelody(long timestamp) {
-        Rhythm rhythm = masMusic.getRhythm();
-        if (rhythm == null) {
-            LOG.warn("Cannot generate melody: rhythm not available");
-            return;
-        }
-        Scale scale = masMusic.getScale();
-        if (scale == null) {
-            LOG.warn("Cannot generate melody: scale not available");
-            return;
-        }
-        List<Phrase> phrases = phrasesTracker.getExtractedPhrases();
-        if (phrases.isEmpty()) {
-            LOG.warn("Cannot generate melody: no phrases detected");
-            return;
-        }
+    /**
+     * Generate a melody of a fixed length.
+     *
+     * @param scale
+     *            Scale of the generated melody
+     * @param beats
+     *            Duration of the melody in beats
+     * @return The generated melody
+     */
+    public Phrase generateMelody(Scale scale, int beats) {
+        LOG.debug("Generating {} beats of melody in {}", beats, scale);
         String scaleType = scale.getType();
-        MarkovPitchGeneratorTable table = getMarkovTable(scaleType);
-        if (table == null) {
-            LOG.warn("Cannot generate melody: Markov table not available");
-            return;
+        MarkovPitchGeneratorTable pitchTable = getPitchTable(scaleType);
+        if (pitchTable == null) {
+            throw new IllegalArgumentException("No pitch table available for scale type '" + scaleType + "'");
+        }
+        MarkovDurationGeneratorTable durationTable = getDurationTable(scaleType);
+        if (durationTable == null) {
+            throw new IllegalArgumentException("No duration table available for scale type '" + scaleType + "'");
         }
 
+        // Create a new generator if necessary
+        if (melodyGenerator == null || !melodyGenerator.getScale().equals(scale)) {
+            melodyGenerator = new MarkovMelodyGenerator(pitchTable, durationTable, scale);
+            melodyGenerator.setPitchBounds(PITCH_BOUND_LOW, PITCH_BOUND_HIGH);
+            generationOffset = .0;
+        }
         // Generate music
-        MarkovPitchGenerator generator = new MarkovPitchGenerator(table, scale);
-        Phrase newPhrase = new Phrase();
-        // Pick random phrase
-        Phrase basePhrase = phrases.get(RNG.nextInt(phrases.size()));
-        // Copy the beginning of the phrase
-        for (int i = 0; i < basePhrase.size(); i++) {
-            ScoreElement element = basePhrase.getElementAt(i);
-            float position = basePhrase.getPositionAt(i);
-            if (i < table.getOrder()) {
-                if (element.getPitches().size() != 1) {
-                    LOG.warn("Phrase score elements should have one pitch");
-                }
-                int pitch = element.getPitches().iterator().next();
-                newPhrase.addElement(element, position);
-                generator.providePitch(pitch);
-            } else {
-                int newPitch = generator.generatePitch();
-                ScoreElement newElement = new ScoreElement(element.getDuration(), Collections.singleton(newPitch));
-                newPhrase.addElement(newElement, position);
-            }
+        Phrase generatedPhrase = new Phrase();
+        double generatedLength = generationOffset;
+        while (generatedLength < beats) {
+            ScoreElement generated = melodyGenerator.generateElement();
+            generatedPhrase.addElement(generated, generatedLength);
+            generatedLength += generated.getDuration();
         }
-
-        // Play the music
-        int beatDuration = rhythm.getBeat().getDuration();
-        long baseTimestamp = rhythm.nextBar(timestamp);
-        for (int i = 0; i < newPhrase.size(); i++) {
-            ScoreElement element = newPhrase.getElementAt(i);
-            float position = newPhrase.getPositionAt(i);
-            long elementTimestamp = baseTimestamp + Math.round(position * beatDuration);
-            int elementDuration = Math.round(element.getDuration() * beatDuration);
-            for (int pitch : element.getPitches()) {
-                masMusic.play(pitch, MasMusic.DEFAULT_VELOCITY, elementTimestamp, elementDuration);
-            }
-        }
+        generationOffset = generatedLength - beats;
+        return generatedPhrase;
     }
 
     /**
      * @param scaleType
      *            A scale type
-     * @return The table corresponding to the given scale type, or null if the
-     *         table does not exist
+     * @return The pitch table corresponding to the given scale type, or null if
+     *         the table does not exist
      */
-    private MarkovPitchGeneratorTable getMarkovTable(String scaleType) {
-        if (!tables.containsKey(scaleType)) {
-            Resource tableRes = ctx.getResource(String.format(TABLE_RESOURCE_FORMAT, scaleType.toLowerCase()));
+    private MarkovPitchGeneratorTable getPitchTable(String scaleType) {
+        if (!pitchTables.containsKey(scaleType)) {
+            Resource tableRes = ctx.getResource(String.format(PITCH_TABLE_RESOURCE_FORMAT, scaleType.toLowerCase()));
             if (tableRes.exists()) {
                 try (MarkovPitchGeneratorTableReader reader = new MarkovPitchGeneratorTableReader(
                         tableRes.getInputStream())) {
-                    tables.put(scaleType, reader.readTable());
+                    pitchTables.put(scaleType, reader.readTable(true));
                 } catch (IOException e) {
                 }
             }
         }
-        return tables.get(scaleType);
+        return pitchTables.get(scaleType);
+    }
+
+    /**
+     * @param scaleType
+     *            A scale type
+     * @return The duration table corresponding to the given scale type, or null
+     *         if the table does not exist
+     */
+    private MarkovDurationGeneratorTable getDurationTable(String scaleType) {
+        if (!durationTables.containsKey(scaleType)) {
+            Resource tableRes = ctx.getResource(String.format(DURATION_TABLE_RESOURCE_FORMAT, scaleType.toLowerCase()));
+            if (tableRes.exists()) {
+                try (MarkovDurationGeneratorTableReader reader = new MarkovDurationGeneratorTableReader(
+                        tableRes.getInputStream())) {
+                    durationTables.put(scaleType, reader.readTable());
+                } catch (IOException e) {
+                }
+            }
+        }
+        return durationTables.get(scaleType);
     }
 }

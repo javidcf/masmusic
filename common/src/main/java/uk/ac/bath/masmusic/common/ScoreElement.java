@@ -14,7 +14,7 @@ import java.util.List;
 public class ScoreElement {
 
     /** Duration of the element in beats. */
-    private final float duration;
+    private final double duration;
 
     /** MIDI pitch values in the element. */
     private final List<Integer> pitches;
@@ -27,7 +27,7 @@ public class ScoreElement {
      * @param pitches
      *            MIDI pitch values in the element
      */
-    public ScoreElement(float duration, Collection<Integer> pitches) {
+    public ScoreElement(double duration, Collection<Integer> pitches) {
         this.duration = duration;
         // Create immutable list without repetitions
         this.pitches = Collections.unmodifiableList(new ArrayList<>(new HashSet<>(pitches)));
@@ -36,7 +36,7 @@ public class ScoreElement {
     /**
      * @return Duration of the element in beats
      */
-    public float getDuration() {
+    public double getDuration() {
         return duration;
     }
 

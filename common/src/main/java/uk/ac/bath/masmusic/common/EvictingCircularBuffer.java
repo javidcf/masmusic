@@ -18,7 +18,8 @@ import java.util.Queue;
  *
  * @author Javier Dehesa
  */
-public class EvictingCircularBuffer<E> extends AbstractList<E> implements Queue<E> {
+public class EvictingCircularBuffer<E> extends AbstractList<E>
+        implements Queue<E> {
 
     /** Data. */
     private final Object[] data;
@@ -170,7 +171,8 @@ public class EvictingCircularBuffer<E> extends AbstractList<E> implements Queue<
     public <T> T[] toArray(T[] a) {
         T[] r = a.length >= size()
                 ? a
-                : (T[]) Array.newInstance(a.getClass().getComponentType(), size());
+                : (T[]) Array.newInstance(a.getClass().getComponentType(),
+                        size());
         for (int i = 0; i < size(); i++) {
             r[i] = (T) get(i);
         }
@@ -236,6 +238,20 @@ public class EvictingCircularBuffer<E> extends AbstractList<E> implements Queue<
             throw new IndexOutOfBoundsException();
         }
         return (E) data[(first + index) % data.length];
+    }
+
+    /**
+     * Retrieves the last element of the buffer.
+     *
+     * @throws NoSuchElementException
+     *             if this buffer is empty
+     * @return the last element of the queue
+     */
+    public E lastElement() {
+        if (isEmpty()) {
+            throw new NoSuchElementException();
+        }
+        return get(size() - 1);
     }
 
 }

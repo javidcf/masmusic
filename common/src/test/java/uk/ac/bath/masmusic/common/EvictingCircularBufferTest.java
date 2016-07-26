@@ -1,7 +1,8 @@
 package uk.ac.bath.masmusic.common;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.*;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -223,6 +224,24 @@ public class EvictingCircularBufferTest {
         buffer.add(3);
         buffer.clear();
         buffer.element();
+    }
+
+    @Test
+    public void testLastElement() {
+        buffer.add(1);
+        buffer.add(2);
+        buffer.add(3);
+        assertThat(buffer.lastElement(), is(3));
+        assertThat(buffer.size(), is(3));
+    }
+
+    @Test(expected = NoSuchElementException.class)
+    public void testLastElementFail() {
+        buffer.add(1);
+        buffer.add(2);
+        buffer.add(3);
+        buffer.clear();
+        buffer.lastElement();
     }
 
     @Test
