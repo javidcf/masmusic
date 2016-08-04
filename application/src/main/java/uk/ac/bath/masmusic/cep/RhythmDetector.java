@@ -7,11 +7,13 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 import uk.ac.bath.masmusic.common.Beat;
 import uk.ac.bath.masmusic.common.Rhythm;
 import uk.ac.bath.masmusic.common.TimeSignature;
+import uk.ac.bath.masmusic.events.RhythmUpdatedEvent;
 import uk.ac.bath.masmusic.mas.MasMusic;
 import uk.ac.bath.masmusic.protobuf.TimeSpanNote;
 
@@ -34,6 +36,9 @@ public class RhythmDetector extends EsperStatementSubscriber {
 
     /** Logger */
     private static Logger LOG = LoggerFactory.getLogger(RhythmDetector.class);
+
+    @Autowired
+    private ApplicationEventPublisher publisher;
 
     @Autowired
     private MasMusic masMusic;
@@ -148,6 +153,8 @@ public class RhythmDetector extends EsperStatementSubscriber {
         Rhythm newRhythm = new Rhythm(beat, timeSignature, beatOffset);
         LOG.debug("New rhythm: {}", newRhythm);
         rhythm.set(newRhythm);
+        // Update rhythm
+        publisher.publishEvent(new RhythmUpdatedEvent(this, newRhythm));
         // Update rhythm in MAS
         masMusic.setRhythm(newRhythm);
         // Stop listening statement

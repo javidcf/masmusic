@@ -1,4 +1,4 @@
-package uk.ac.bath.masmusic.generation;
+package uk.ac.bath.masmusic.generation.melody;
 
 import java.io.BufferedReader;
 import java.io.Closeable;

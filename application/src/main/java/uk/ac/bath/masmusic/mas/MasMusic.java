@@ -151,21 +151,12 @@ public class MasMusic implements MessageHandler, Runnable {
             LOG.error("Unexpected message type");
             return;
         }
-        handleNoteMessage((TimeSpanNote) payload);
-    }
-
-    /**
-     * Handle a new note message.
-     *
-     * @param note
-     *            Received note message
-     */
-    private void handleNoteMessage(TimeSpanNote note) {
-        int octave = note.getPitch().getOctave();
-        int baseNoteValue = note.getPitch().getNote().getNumber();
+        TimeSpanNote timeSpanNote = (TimeSpanNote) payload;
+        int octave = timeSpanNote.getPitch().getOctave();
+        int baseNoteValue = timeSpanNote.getPitch().getNote().getNumber();
         int pitchValue = (octave + 1) * 12 + baseNoteValue;
-        int velocity = note.getVelocity();
-        long timestamp = note.getTimestamp();
+        int velocity = timeSpanNote.getVelocity();
+        long timestamp = timeSpanNote.getTimestamp();
         for (MasMusicAbstractAgent agent : agents) {
             agent.hear(pitchValue, velocity, timestamp);
         }

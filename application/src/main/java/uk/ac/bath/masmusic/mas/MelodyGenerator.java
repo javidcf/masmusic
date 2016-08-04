@@ -14,11 +14,11 @@ import org.springframework.stereotype.Component;
 import uk.ac.bath.masmusic.common.Phrase;
 import uk.ac.bath.masmusic.common.Scale;
 import uk.ac.bath.masmusic.common.ScoreElement;
-import uk.ac.bath.masmusic.generation.MarkovDurationGeneratorTable;
-import uk.ac.bath.masmusic.generation.MarkovDurationGeneratorTableReader;
-import uk.ac.bath.masmusic.generation.MarkovMelodyGenerator;
-import uk.ac.bath.masmusic.generation.MarkovPitchGeneratorTable;
-import uk.ac.bath.masmusic.generation.MarkovPitchGeneratorTableReader;
+import uk.ac.bath.masmusic.generation.melody.MarkovDurationGeneratorTable;
+import uk.ac.bath.masmusic.generation.melody.MarkovDurationGeneratorTableReader;
+import uk.ac.bath.masmusic.generation.melody.MarkovMelodyGenerator;
+import uk.ac.bath.masmusic.generation.melody.MarkovPitchGeneratorTable;
+import uk.ac.bath.masmusic.generation.melody.MarkovPitchGeneratorTableReader;
 
 /**
  * Melody generator.

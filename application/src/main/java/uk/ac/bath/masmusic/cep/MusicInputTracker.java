@@ -3,7 +3,6 @@ package uk.ac.bath.masmusic.cep;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,20 +10,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
-import uk.ac.bath.masmusic.analysis.scale.ScaleInducer;
 import uk.ac.bath.masmusic.common.Onset;
-import uk.ac.bath.masmusic.common.Scale;
-import uk.ac.bath.masmusic.events.ScaleUpdatedEvent;
-import uk.ac.bath.masmusic.mas.MasMusic;
+import uk.ac.bath.masmusic.events.MusicInputBufferUpdatedEvent;
 import uk.ac.bath.masmusic.protobuf.TimeSpanNote;
 
 /**
- * Scale detector for Esper {@link TimeSpanNote} events.
+ * Input tracker for Esper {@link TimeSpanNote} events.
+ *
+ * This tracker publishes {@link MusicInputBufferUpdatedEvent} events
+ * periodically.
  *
  * @author Javier Dehesa
  */
 @Component
-public class ScaleTracker extends EsperStatementSubscriber {
+public class MusicInputTracker extends EsperStatementSubscriber {
 
     /** Quantization step size (ms) */
     private static final int QUANTIZATION = 40; // TODO Use this?
@@ -35,31 +34,29 @@ public class ScaleTracker extends EsperStatementSubscriber {
     /** Frequency of beat analysis (ms) */
     private static final int ANALYSIS_FREQUENCY = 5000;
 
+    /** String format for chord bigram model resources. */
+    private static final String CHORD_BIGRAM_MODEL_RESOURCE_FORMAT = "classpath:generation/%s.cbm";
+
+    /** String format for pitch class model resources. */
+    private static final String PITCH_CLASS_CHORD_MODEL_RESOURCE_FORMAT = "classpath:generation/%s.pcm";
+
+    /** Considered measures period for harmonization. */
+    private static final int HARMONIZATION_MEASURES_PERIOD = 8;
+
     /** Logger */
-    private static Logger LOG = LoggerFactory.getLogger(ScaleTracker.class);
+    private static Logger LOG = LoggerFactory.getLogger(MusicInputTracker.class);
 
     @Autowired
     private ApplicationEventPublisher publisher;
 
-    @Autowired
-    private MasMusic masMusic;
-
-    /** Scale inducer. */
-    private final ScaleInducer scaleInducer;
-
     /** Onsets list. */
     private final List<Onset> onsets;
-
-    /** Current scale. */
-    private final AtomicReference<Scale> scale;
 
     /**
      * Constructor.
      */
-    public ScaleTracker() {
-        scaleInducer = new ScaleInducer();
+    public MusicInputTracker() {
         onsets = new ArrayList<>();
-        scale = new AtomicReference<>(null);
     }
 
     /*** Esper ***/
@@ -104,20 +101,8 @@ public class ScaleTracker extends EsperStatementSubscriber {
      * Finish event delivery.
      */
     public void updateEnd() {
-        Scale newScale = scaleInducer.induceScale(onsets);
-        if (newScale != null) {
-            LOG.debug("New scale: {}", newScale);
-            scale.set(newScale);
-            publisher.publishEvent(new ScaleUpdatedEvent(this, newScale));
-            masMusic.setScale(newScale);
+        if (!onsets.isEmpty()) {
+            publisher.publishEvent(new MusicInputBufferUpdatedEvent(this, onsets));
         }
     }
-
-    /**
-     * @return The induced scale, or null of no scale has been induced
-     */
-    public synchronized Scale getCurrentScale() {
-        return scale.get();
-    }
-
 }

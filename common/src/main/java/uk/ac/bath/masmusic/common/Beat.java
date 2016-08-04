@@ -204,6 +204,46 @@ public class Beat implements Cloneable {
         }
     }
 
+    /**
+     * Create a new onset resulting of snapping the given onset to the closest
+     * beat.
+     *
+     * The resulting onset has a timestamp and duration that matches exactly
+     * some beat.
+     *
+     * @param onset
+     *            Onset to snap
+     * @return The snapped onset
+     */
+    public Onset snap(Onset onset) {
+        return snap(onset, 1);
+    }
+
+    /**
+     * Create a new onset resulting of snapping the given onset to the closest
+     * beat subdivision.
+     *
+     * The resulting onset has a timestamp and duration that matches exactly
+     * some beat subdivisions.
+     *
+     * @param onset
+     *            Onset to snap
+     * @param subdivision
+     *            Number of beat subdivisons allowed (0 = full beat, 1 = half
+     *            beat, 2 = quarter beat, etc.)
+     * @return The snapped onset
+     */
+    public Onset snap(Onset onset, int subdivision) {
+        if (subdivision < 0) {
+            throw new IllegalArgumentException("The allowed subdivision level cannot be negative");
+        }
+        long begin = closestSubbeat(onset.getTimestamp(), subdivision);
+        long end = closestSubbeat(onset.getTimestamp() + onset.getDuration(), subdivision);
+        int subbeatDuration = Math.round(getDuration() / (float) (1 << subdivision));
+        int duration = Math.round((end - begin) / ((float) subbeatDuration)) * subbeatDuration;
+        return new Onset(begin, duration, onset.getPitch(), onset.getVelocity());
+    }
+
     @Override
     public String toString() {
         return "Beat [tempo=" + getTempo() + ", duration=" + duration
