@@ -9,6 +9,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import jason.asSemantics.ActionExec;
+import jason.asSyntax.Literal;
 import jason.asSyntax.Structure;
 import uk.ac.bath.masmusic.common.Beat;
 import uk.ac.bath.masmusic.common.Note;
@@ -31,6 +32,9 @@ public class HarmonizerAgent extends MasMusicAbstractAgent {
 
     /** Agent ASL source path. */
     private static final String ASL_PATH = "/asl/harmonizerAgent.asl";
+
+    /** Literal indicating that an harmonization is available. */
+    private static final Literal HARMONIZATION_AVAILABLE = Literal.parseLiteral("harmonizationAvailable");
 
     @Autowired
     private MasMusic masMusic;
@@ -75,6 +79,15 @@ public class HarmonizerAgent extends MasMusicAbstractAgent {
         } else {
             return false;
         }
+    }
+
+    @Override
+    public List<Literal> perceive() {
+        List<Literal> percepts = super.perceive();
+        if (harmonyGenerator.hasHarmonization()) {
+            percepts.add(HARMONIZATION_AVAILABLE);
+        }
+        return percepts;
     }
 
     /**

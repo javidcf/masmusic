@@ -91,9 +91,15 @@ public class ChordBigramModel {
         Entry entry = model.get(prevRelativeChord);
         if (probabilities != null) {
             probabilities.clear();
-            probabilities.addAll(probabilities);
         }
-        return entry.chords.stream().map(c -> c.getChord(fundamental)).collect(Collectors.toList());
+        if (entry != null) {
+            if (probabilities != null) {
+                probabilities.addAll(entry != null ? entry.probabilities : Collections.emptyList());
+            }
+            return entry.chords.stream().map(c -> c.getChord(fundamental)).collect(Collectors.toList());
+        } else {
+            return Collections.emptyList();
+        }
     }
 
     /**
@@ -124,7 +130,7 @@ public class ChordBigramModel {
      */
     private static class Entry {
         final List<ScaleRelativeChord> chords;
-        final List<Double>             probabilities;
+        final List<Double> probabilities;
 
         Entry(List<ScaleRelativeChord> chords, List<Double> probabilities) {
             if (chords.size() != probabilities.size()) {
@@ -133,9 +139,9 @@ public class ChordBigramModel {
             if (chords.isEmpty()) {
                 throw new IllegalArgumentException("Entry data cannot be empty");
             }
-            // Reorder by probability
+            // Reorder by probability (greater to smaller)
             List<Integer> indices = IntStream.range(0, chords.size()).boxed()
-                    .sorted(Comparator.comparingDouble(probabilities::get)).collect(Collectors.toList());
+                    .sorted(Comparator.comparingDouble(i -> -probabilities.get(i))).collect(Collectors.toList());
             this.chords = indices.stream()
                     .map(chords::get)
                     .collect(Collectors.collectingAndThen(Collectors.toList(), Collections::unmodifiableList));

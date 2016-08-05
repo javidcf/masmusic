@@ -13,6 +13,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.google.common.base.Objects;
+
 import jason.JasonException;
 import jason.architecture.AgArch;
 import jason.asSemantics.ActionExec;
@@ -105,8 +107,8 @@ public abstract class MasMusicAbstractAgent extends AgArch {
 
     @Override
     public List<Literal> perceive() {
-        super.perceive();
-        percepts.clear();
+        this.percepts.clear();
+        List<Literal> percepts = Objects.firstNonNull(super.perceive(), this.percepts);
         if (currentRhythm != null) {
             percepts.add(currentRhythm);
         }

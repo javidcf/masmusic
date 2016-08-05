@@ -131,6 +131,7 @@ public class Harmonizer {
             for (int iDivision = 0; iDivision < measureDivisions; iDivision++) {
                 int divisionId = getDivisionId(timestamp, rhythm);
                 Chord chord = harmonization.get(divisionId);
+                LOG.debug("divisonId: {}, {}", divisionId, chord);
                 for (int pitch : chord.getPitches(octave)) {
                     harmony.add(new Onset(timestamp, divisionLength, pitch, velocity));
                 }
@@ -182,6 +183,9 @@ public class Harmonizer {
         for (Map.Entry<Integer, List<Onset>> entry : groupedMap.entrySet()) {
             grouped.set(entry.getKey(), entry.getValue());
         }
+        if (grouped.stream().anyMatch(l -> l == null || l.isEmpty())) {
+            return false;
+        }
         // Produce harmonization
         Chord previousChord = null;
         boolean done = false;
@@ -225,7 +229,7 @@ public class Harmonizer {
      * @return The selected chord, or null if no appropriate chord could be
      *         found
      */
-    private Chord harmonizeDivision(Note fundamental, Collection<Onset> onsets, Chord previousChord) {
+    private Chord harmonizeDivision(Note fundamental, List<Onset> onsets, Chord previousChord) {
         if (onsets.isEmpty()) {
             return null;
         }
@@ -242,11 +246,13 @@ public class Harmonizer {
             return previousChord;
         }
         List<Double> bigramModelChordsProbs = new ArrayList<>();
-        List<Chord> bigramModelChords = chordBigramModel
-                .estimateChords(fundamental, previousChord, bigramModelChordsProbs);
-        // Add current chord with "probability" of 1
+        List<Chord> bigramModelChords = new ArrayList<>(
+                chordBigramModel.estimateChords(fundamental, previousChord, bigramModelChordsProbs));
+        // Add current chord with "probability" of ???
         bigramModelChords.add(previousChord);
-        bigramModelChordsProbs.add(1.0);
+        // bigramModelChordsProbs.add(1.0);
+        // bigramModelChordsProbs.add(0.0);
+        bigramModelChordsProbs.add(bigramModelChordsProbs.stream().mapToDouble(d -> d).average().orElse(1.0));
 
         // Combine estimations
         Optional<ChordProbability> bestChord = Stream.concat(
@@ -258,7 +264,7 @@ public class Harmonizer {
                 // Group estimations by chord
                 .collect(Collectors.groupingBy(cp -> cp.chord)).entrySet().stream()
                 // Discard elements not present in estimations of both models
-                .filter(e -> e.getValue().size() < 2)
+                .filter(e -> e.getValue().size() > 1)
                 // Multiply both probabilities
                 .map(e -> new ChordProbability(e.getKey(),
                         e.getValue().stream().mapToDouble(cp -> cp.probability).reduce(1.0, (x, y) -> x * y)))
@@ -301,18 +307,24 @@ public class Harmonizer {
     private int getDivisionId(long timestamp, Rhythm rhythm) {
         int measureDivisions = getMeasureDivisions(rhythm.getTimeSignature());
         int totalDivisions = measureDivisions * this.harmonizationMeasuresPeriod;
-        float divisionLength = rhythm.getBarDuration() / ((float) measureDivisions);
+        double divisionLength = rhythm.getBarDuration() / ((double) measureDivisions);
         int firstMeasureOffset = rhythm.getBeat().getPhase() + rhythm.getBeatOffset() * rhythm.getBeat().getDuration();
-        return Math.round((timestamp - firstMeasureOffset - divisionLength / 2.0f) / (divisionLength)) % totalDivisions;
+        return (int) (Math.round((timestamp - firstMeasureOffset - divisionLength / 2) / (divisionLength))
+                % totalDivisions);
     }
 
     private static class ChordProbability {
-        final Chord  chord;
+        final Chord chord;
         final double probability;
 
         ChordProbability(Chord chord, double probability) {
             this.chord = chord;
             this.probability = probability;
+        }
+
+        @Override
+        public String toString() {
+            return "ChordProbability [chord=" + chord + ", probability=" + probability + "]";
         }
     }
 }

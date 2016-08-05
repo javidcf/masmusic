@@ -63,7 +63,7 @@ public class ScaleRelativeChord {
      * @return A chord for the given fundamental
      */
     public Chord getChord(Note fundamental) {
-        return new Chord(fundamental, structure);
+        return new Chord(fundamental.increasedBy(root), structure);
     }
 
     /**

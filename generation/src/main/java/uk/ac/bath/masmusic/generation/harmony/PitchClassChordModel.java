@@ -1,10 +1,10 @@
 package uk.ac.bath.masmusic.generation.harmony;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -67,7 +67,7 @@ public class PitchClassChordModel {
      *            A collection of onsets
      * @return A list of estimated chords sorted by probability
      */
-    public List<Chord> estimateChords(Note fundamental, Collection<Onset> onsets) {
+    public List<Chord> estimateChords(Note fundamental, List<Onset> onsets) {
         return estimateChords(fundamental, onsets, null);
     }
 
@@ -83,33 +83,65 @@ public class PitchClassChordModel {
      *            probabilities of the returned chords
      * @return A list of estimated chords sorted by probability
      */
-    public List<Chord> estimateChords(Note fundamental, Collection<Onset> onsets, List<Double> probabilities) {
-        // Compute chord (log-)probabilities
+    public List<Chord> estimateChords(Note fundamental, List<Onset> onsets, List<Double> probabilities) {
+        // Discard short onsets
+        final int MIN_DURATION = 100;
+        double totalDuration = onsets.stream()
+                .filter(o -> o.getDuration() > MIN_DURATION)
+                .mapToDouble(o -> o.getDuration())
+                .sum();
+        Iterator<Onset> relevantOnsets = onsets.stream()
+                .filter(o -> o.getDuration() > MIN_DURATION)
+                .iterator();
+        // Finish if empty
+        if (!relevantOnsets.hasNext()) {
+            if (probabilities != null) {
+                probabilities.clear();
+            }
+            return Collections.emptyList();
+        }
+        // Collect chord probabilities of first onset
         Map<ScaleRelativeChord, Double> chordProbabilitiesMap = new HashMap<>();
-        double totalDuration = onsets.stream().mapToDouble(o -> o.getDuration()).sum();
-        for (Onset onset : onsets) {
-            Entry entry = model.get(onset.getPitch());
-            for (int i = 0; i < entry.size(); i++) {
-                ScaleRelativeChord chord = entry.chords.get(i);
-                double newProbability = chordProbabilitiesMap.getOrDefault(chord, .0)
-                        + Math.log(entry.probabilities.get(i) * onset.getDuration() / totalDuration);
-                chordProbabilitiesMap.put(chord, newProbability);
+        Onset onset = relevantOnsets.next();
+        Entry entry = model.get(fundamental.ascendingDistanceTo(Note.fromValue(onset.getPitch())));
+        double onsetContribution = onset.getDuration() / totalDuration;
+        for (int i = 0; i < entry.size(); i++) {
+            ScaleRelativeChord chord = entry.chords.get(i);
+            double probability = Math.log(entry.probabilities.get(i)) * onsetContribution;
+            chordProbabilitiesMap.put(chord, probability);
+        }
+        // Compose probabilities
+        while (relevantOnsets.hasNext()) {
+            onset = relevantOnsets.next();
+            entry = model.get(fundamental.ascendingDistanceTo(Note.fromValue(onset.getPitch())));
+            onsetContribution = onset.getDuration() / totalDuration;
+            Iterator<Map.Entry<ScaleRelativeChord, Double>> it = chordProbabilitiesMap.entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry<ScaleRelativeChord, Double> chordProbability = it.next();
+                int idx = entry.chords.indexOf(chordProbability.getKey());
+                if (idx >= 0) {
+                    double probabilityContribution = Math.log(entry.probabilities.get(idx)) * onsetContribution;
+                    chordProbability.setValue(chordProbability.getValue() + probabilityContribution);
+                } else {
+                    // Discard the chord if it is not valid for the pitch
+                    it.remove();
+                }
             }
         }
-        // Sort by probability
-        List<Map.Entry<ScaleRelativeChord, Double>> chordProbabilities = chordProbabilitiesMap.entrySet().stream()
-                .sorted(Comparator.comparingDouble(e -> e.getValue())).collect(Collectors.toList());
 
-        List<Chord> chords = new ArrayList<>(chordProbabilities.size());
+        // Sort by probability
+        List<Chord> chords = new ArrayList<>(chordProbabilitiesMap.size());
         if (probabilities != null) {
             probabilities.clear();
         }
-        for (Map.Entry<ScaleRelativeChord, Double> e : chordProbabilities) {
-            chords.add(e.getKey().getChord(fundamental));
-            if (probabilities != null) {
-                probabilities.add(Math.exp(e.getValue()));
-            }
-        }
+        chordProbabilitiesMap.entrySet().stream()
+                .sorted(Comparator.comparingDouble(e -> -e.getValue()))  // Greater to smaller
+                .forEachOrdered(e -> {
+                    chords.add(e.getKey().getChord(fundamental));
+                    if (probabilities != null) {
+                        probabilities.add(Math.exp(e.getValue()));
+                    }
+                });
         return chords;
     }
 
@@ -141,7 +173,7 @@ public class PitchClassChordModel {
      */
     private static class Entry {
         final List<ScaleRelativeChord> chords;
-        final List<Double>             probabilities;
+        final List<Double> probabilities;
 
         Entry(List<ScaleRelativeChord> chords, List<Double> probabilities) {
             if (chords.size() != probabilities.size()) {

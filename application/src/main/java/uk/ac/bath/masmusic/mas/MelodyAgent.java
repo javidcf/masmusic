@@ -16,18 +16,18 @@ import uk.ac.bath.masmusic.common.ScoreElement;
 import uk.ac.bath.masmusic.common.TimeSignature;
 
 /**
- * An agent that plays a melody generated through a Markov process.
+ * An agent that plays a randomly generated melody.
  *
  * @author Javier Dehesa
  */
 @Component
-public class MarkovMelodyAgent extends MasMusicAbstractAgent {
+public class MelodyAgent extends MasMusicAbstractAgent {
 
     /** Logger */
-    private static Logger LOG = LoggerFactory.getLogger(MarkovMelodyAgent.class);
+    private static Logger LOG = LoggerFactory.getLogger(MelodyAgent.class);
 
     /** Agent ASL source path. */
-    private static final String ASL_PATH = "/asl/markovMelodyAgent.asl";
+    private static final String ASL_PATH = "/asl/melodyAgent.asl";
 
     @Autowired
     private MasMusic masMusic;
@@ -35,7 +35,7 @@ public class MarkovMelodyAgent extends MasMusicAbstractAgent {
     @Autowired
     private MelodyGenerator melodyGenerator;
 
-    public MarkovMelodyAgent() {
+    public MelodyAgent() {
         initAgent(ASL_PATH);
     }
 

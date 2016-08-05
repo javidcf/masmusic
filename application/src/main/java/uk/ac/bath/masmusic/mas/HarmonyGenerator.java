@@ -75,6 +75,13 @@ public class HarmonyGenerator {
     }
 
     /**
+     * @return True if the harmonizer has an harmonization, false otherwise
+     */
+    public synchronized boolean hasHarmonization() {
+        return harmonizer != null && harmonizer.hasHarmonization();
+    }
+
+    /**
      * Get the harmony for a music segment.
      *
      * @param rhythm
@@ -90,7 +97,7 @@ public class HarmonyGenerator {
      * @return The generated harmony, or an empty list if no harmony could be
      *         generated
      */
-    public List<Onset> getHarmony(Rhythm rhythm, Scale scale, long timestamp, int bars) {
+    public synchronized List<Onset> getHarmony(Rhythm rhythm, Scale scale, long timestamp, int bars) {
         Objects.requireNonNull(rhythm);
         Objects.requireNonNull(scale);
         if (bars < 0) {
@@ -98,7 +105,7 @@ public class HarmonyGenerator {
         }
         if (Objects.equals(rhythm.getTimeSignature(), timeSignature) && scale.equals(this.scale)
                 && harmonizer.hasHarmonization()) {
-            return harmonizer.getHarmony(rhythm, timestamp, bars, 3, MasMusic.DEFAULT_VELOCITY);
+            return harmonizer.getHarmony(rhythm, timestamp, bars, 3, MasMusic.DEFAULT_VELOCITY / 2);
         } else {
             return Collections.emptyList();
         }
@@ -139,6 +146,8 @@ public class HarmonyGenerator {
         if (harmonized) {
             this.scale = scale;
             this.timeSignature = rhythm.getTimeSignature();
+        } else {
+            LOG.debug("Could not perform harmonization");
         }
     }
 
