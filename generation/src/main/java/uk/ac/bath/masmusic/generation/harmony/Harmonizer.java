@@ -46,8 +46,11 @@ public class Harmonizer {
     /** Pitch class chord model. */
     private final PitchClassChordModel pitchClassChordModel;
 
-    /** The last known time signature. */
+    /** The time signature used in the current harmonization. */
     private TimeSignature timeSignature;
+
+    /** The beat offset used in the current harmonization. */
+    private int beatOffset;
 
     /** Last produced harmonization. */
     private final List<Chord> harmonization;
@@ -70,6 +73,8 @@ public class Harmonizer {
         this.harmonizationMeasuresPeriod = harmonizationMeasuresPeriod;
         this.chordBigramModel = chordBigramModel;
         this.pitchClassChordModel = pitchClassChordModel;
+        this.timeSignature = null;
+        this.beatOffset = -1;
         this.harmonization = new ArrayList<>();
     }
 
@@ -95,9 +100,9 @@ public class Harmonizer {
      * {@link #hasHarmonization} must be true).
      *
      * @param rhythm
-     *            The rhythm of the generated harmony; the time signature of
-     *            this rhythm must match that of the rhythm used to compute the
-     *            harmonization
+     *            The rhythm of the generated harmony; the time signature and
+     *            beat offset of this rhythm must match that of the rhythm used
+     *            to compute the harmonization
      * @param timestamp
      *            Timestamp of the first harmony bar; if the timestamp does not
      *            match exactly the beginning of a bar, then the next closest
@@ -115,9 +120,9 @@ public class Harmonizer {
         if (bars < 0) {
             throw new IllegalArgumentException("The number of bars cannot be negative");
         }
-        if (!Objects.equals(rhythm.getTimeSignature(), timeSignature)) {
+        if (!Objects.equals(rhythm.getTimeSignature(), timeSignature) || rhythm.getBeatOffset() != beatOffset) {
             throw new IllegalArgumentException(
-                    "The time signature of the rhythm must be the same used for harmonization");
+                    "The time signature and beat offset of the rhythm must be the same used for harmonization");
         }
         if (!hasHarmonization()) {
             throw new IllegalStateException("An harmonization must have been computed first");
@@ -213,6 +218,7 @@ public class Harmonizer {
         harmonization.clear();
         harmonization.addAll(newHarmonization);
         timeSignature = rhythm.getTimeSignature();
+        beatOffset = rhythm.getBeatOffset();
         return true;
     }
 
@@ -314,7 +320,7 @@ public class Harmonizer {
     }
 
     private static class ChordProbability {
-        final Chord chord;
+        final Chord  chord;
         final double probability;
 
         ChordProbability(Chord chord, double probability) {

@@ -60,6 +60,9 @@ public class HarmonyGenerator {
     /** The harmonization time signature. */
     private TimeSignature timeSignature;
 
+    /** The harmonization beat offset. */
+    private int beatOffset;
+
     /** Harmonizer. */
     private Harmonizer harmonizer;
 
@@ -71,6 +74,7 @@ public class HarmonyGenerator {
         pitchClassChordModels = new HashMap<>();
         scale = null;
         timeSignature = null;
+        beatOffset = -1;
         harmonizer = null;
     }
 
@@ -103,9 +107,11 @@ public class HarmonyGenerator {
         if (bars < 0) {
             throw new IllegalArgumentException("The number of bars cannot be negative");
         }
-        if (Objects.equals(rhythm.getTimeSignature(), timeSignature) && scale.equals(this.scale)
+        if (rhythm.getTimeSignature().equals(timeSignature)
+                && rhythm.getBeatOffset() == beatOffset
+                && scale.equals(this.scale)
                 && harmonizer.hasHarmonization()) {
-            return harmonizer.getHarmony(rhythm, timestamp, bars, 3, MasMusic.DEFAULT_VELOCITY / 2);
+            return harmonizer.getHarmony(rhythm, timestamp, bars, 3, MasMusic.DEFAULT_VELOCITY);
         } else {
             return Collections.emptyList();
         }
@@ -127,8 +133,11 @@ public class HarmonyGenerator {
         Objects.requireNonNull(onsets);
         LOG.debug("Harmonizing melody in {}", scale);
         // Create a new harmonizer if the scale type or the time signature has changed
-        if (this.scale == null || !scale.getType().equals(this.scale.getType())
-                || this.timeSignature == null || !rhythm.getTimeSignature().equals(this.timeSignature)) {
+        if (this.scale == null
+                || !scale.getType().equals(this.scale.getType())
+                || this.timeSignature == null
+                || !rhythm.getTimeSignature().equals(this.timeSignature)
+                || this.beatOffset != rhythm.getBeatOffset()) {
             String scaleType = scale.getType();
             ChordBigramModel chordBigramModel = getChordBigramModel(scaleType);
             if (chordBigramModel == null) {
@@ -146,6 +155,7 @@ public class HarmonyGenerator {
         if (harmonized) {
             this.scale = scale;
             this.timeSignature = rhythm.getTimeSignature();
+            this.beatOffset = rhythm.getBeatOffset();
         } else {
             LOG.debug("Could not perform harmonization");
         }
