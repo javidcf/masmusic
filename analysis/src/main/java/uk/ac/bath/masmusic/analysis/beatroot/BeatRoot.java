@@ -35,19 +35,9 @@ public class BeatRoot {
 
     /**
      * Constructor.
-     *
-     * @param minTempo
-     *            Minimum tempo that may be estimated
-     * @param maxTempo
-     *            Maximum tempo that may be estimated
-     * @throws IllegalArgumentException
-     *             If the tempo range is not valid
      */
-    public BeatRoot(int minTempo, int maxTempo) {
-        if (minTempo <= 0 || minTempo > maxTempo) {
-            throw new IllegalArgumentException("Invalid tempo range");
-        }
-        beatInducer = new BeatInducer(minTempo, maxTempo);
+    public BeatRoot() {
+        beatInducer = new BeatInducer();
     }
 
     /**
@@ -55,13 +45,17 @@ public class BeatRoot {
      *
      * @param onsets
      *            Onset events, sorted by time
+     * @param minTempo
+     *            Minimum tempo that may be estimated (bpm)
+     * @param maxTempo
+     *            Maximum tempo that may be estimated (bpm)
      * @return The estimated beat, or null if no estimation could be done
      */
-    public Beat estimateBeat(List<Onset> onsets) {
-        List<Double> induced = beatInducer.induceBeat(onsets);
-        // System.out.print("Induced beat: [ ");
-        // induced.forEach(d -> System.out.printf("%.0f ", 60000 / d));
-        // System.out.println("]");
+    public Beat estimateBeat(List<Onset> onsets, int minTempo, int maxTempo) {
+        if (minTempo <= 0 || minTempo > maxTempo) {
+            throw new IllegalArgumentException("Invalid tempo range");
+        }
+        List<Double> induced = beatInducer.induceBeat(onsets, minTempo, maxTempo);
         return trackBeat(onsets, induced);
     }
 
@@ -107,16 +101,6 @@ public class BeatRoot {
             Onset onset = it.next();
             long timestamp = onset.getTimestamp();
             double salience = onsetSalience(onset);
-
-            // DEBUG
-            BeatHypothesisTracker btr = trackers.peek();
-            for (BeatHypothesisTracker tr : trackers) {
-                if (tr.getScore() > btr.getScore()) {
-                    btr = tr;
-                }
-            }
-            //System.out.println(btr);
-            // DEBUG
 
             // Move ahead trackers behind the onset
             BeatHypothesisTracker tracker = pollTracker(trackers);

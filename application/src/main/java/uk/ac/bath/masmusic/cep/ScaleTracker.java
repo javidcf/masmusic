@@ -15,7 +15,6 @@ import uk.ac.bath.masmusic.analysis.scale.ScaleInducer;
 import uk.ac.bath.masmusic.common.Onset;
 import uk.ac.bath.masmusic.common.Scale;
 import uk.ac.bath.masmusic.events.ScaleUpdatedEvent;
-import uk.ac.bath.masmusic.mas.MasMusic;
 import uk.ac.bath.masmusic.protobuf.TimeSpanNote;
 
 /**
@@ -25,9 +24,6 @@ import uk.ac.bath.masmusic.protobuf.TimeSpanNote;
  */
 @Component
 public class ScaleTracker extends EsperStatementSubscriber {
-
-    /** Quantization step size (ms) */
-    private static final int QUANTIZATION = 40; // TODO Use this?
 
     /** Window size for beat analysis (ms) */
     private static final int ANALYSIS_WINDOW = 30000;
@@ -40,9 +36,6 @@ public class ScaleTracker extends EsperStatementSubscriber {
 
     @Autowired
     private ApplicationEventPublisher publisher;
-
-    @Autowired
-    private MasMusic masMusic;
 
     /** Scale inducer. */
     private final ScaleInducer scaleInducer;
@@ -73,7 +66,6 @@ public class ScaleTracker extends EsperStatementSubscriber {
                 // + " Math.round(avg(timestamp)) as timestamp"
                 + " noteOnset(*) as onset"
                 + " from TimeSpanNote.win:time(" + ANALYSIS_WINDOW + " msec) "
-                // + " group by Math.round(timestamp / " + QUANTIZATION + ")"
                 + " output snapshot every " + ANALYSIS_FREQUENCY + " msec"
                 + " order by timestamp asc";
     }
@@ -109,7 +101,6 @@ public class ScaleTracker extends EsperStatementSubscriber {
             LOG.debug("New scale: {}", newScale);
             scale.set(newScale);
             publisher.publishEvent(new ScaleUpdatedEvent(this, newScale));
-            masMusic.setScale(newScale);
         }
     }
 

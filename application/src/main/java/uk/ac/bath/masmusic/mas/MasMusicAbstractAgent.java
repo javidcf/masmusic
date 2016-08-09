@@ -12,6 +12,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.event.EventListener;
 
 import com.google.common.base.Objects;
 
@@ -25,6 +26,8 @@ import jason.asSyntax.Literal;
 import jason.runtime.Settings;
 import uk.ac.bath.masmusic.common.Rhythm;
 import uk.ac.bath.masmusic.common.Scale;
+import uk.ac.bath.masmusic.events.RhythmUpdatedEvent;
+import uk.ac.bath.masmusic.events.ScaleUpdatedEvent;
 
 /**
  * Base class for MasMusic agents.
@@ -198,12 +201,14 @@ public abstract class MasMusicAbstractAgent extends AgArch {
     }
 
     /**
-     * Inform the agent about a new rhythm spec.
+     * Handle a rhythm update event.
      *
-     * @param rhythm
-     *            The new rhythm
+     * @param event
+     *            The rhythm update event
      */
-    public void setRhythm(Rhythm rhythm) {
+    @EventListener
+    public void onRhythmUpdated(RhythmUpdatedEvent event) {
+        Rhythm rhythm = event.getRhythm();
         int beatDuration = rhythm.getBeat().getDuration();
         int beatPhase = rhythm.getBeat().getPhase();
         int barBeats = rhythm.getTimeSignature().getBeats();
@@ -216,12 +221,14 @@ public abstract class MasMusicAbstractAgent extends AgArch {
     }
 
     /**
-     * Inform the agent about a new scale spec.
+     * Handle a scale update event.
      *
-     * @param scale
-     *            The new scale
+     * @param event
+     *            The scale update event
      */
-    public void setScale(Scale scale) {
+    @EventListener
+    public void onScaleUpdated(ScaleUpdatedEvent event) {
+        Scale scale = event.getScale();
         currentScale = Literal.parseLiteral(String.format("%s(%d, %s)",
                 SCALE_EVENT, scale.getFundamental().value(), scale.getType().toLowerCase()));
     }

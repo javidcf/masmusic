@@ -144,6 +144,17 @@ public class Rhythm {
         }
     }
 
+    /**
+     * Get the position of a beat in the bar.
+     *
+     * @param timestamp
+     *            A timestamp within the beat
+     * @return The position of the beat in the bar, starting on 0
+     */
+    public int beatPosition(long timestamp) {
+        return (int) Math.floorMod(beat.beatNumber(timestamp) - beatOffset, timeSignature.getBeats());
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;

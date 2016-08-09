@@ -28,28 +28,10 @@ class BeatInducer {
     /** Number of best clusters considered for induction */
     private static final int NUM_BEST_CLUSTERS = 10;
 
-    /** Minimum tempo (bpm) */
-    private final int minTempo;
-
-    /** Maximum tempo (bpm) */
-    private final int maxTempo;
-
     /**
      * Constructor.
-     *
-     * @param minTempo
-     *            Minimum tempo that may be induced
-     * @param maxTempo
-     *            Maximum tempo that may be induced
-     * @throws IllegalArgumentException
-     *             If the tempo range is not valid
      */
-    public BeatInducer(int minTempo, int maxTempo) {
-        if (minTempo <= 0 || minTempo > maxTempo) {
-            throw new IllegalArgumentException("Invalid tempo range");
-        }
-        this.minTempo = minTempo;
-        this.maxTempo = maxTempo;
+    public BeatInducer() {
     }
 
     /**
@@ -57,9 +39,16 @@ class BeatInducer {
      *
      * @param onsets
      *            Onsets for which the beat is induced
+     * @param minTempo
+     *            Minimum tempo that may be induced (bpm)
+     * @param maxTempo
+     *            Maximum tempo that may be induced (bpm)
      * @return A list of induced possible beat durations
      */
-    public List<Double> induceBeat(List<Onset> onsets) {
+    public List<Double> induceBeat(List<Onset> onsets, int minTempo, int maxTempo) {
+        if (minTempo <= 0 || minTempo > maxTempo) {
+            throw new IllegalArgumentException("Invalid tempo range");
+        }
         if (onsets.size() < 2) {
             return new ArrayList<Double>(0);
         }
@@ -92,8 +81,7 @@ class BeatInducer {
         // Score clusters
         int[] clusterScores = scoreClusters(beatClusters);
         // Induce
-        List<Double> inducedBeat = induceFromClusters(beatClusters,
-                clusterScores);
+        List<Double> inducedBeat = induceFromClusters(beatClusters, clusterScores, minTempo, maxTempo);
         return inducedBeat;
     }
 
@@ -104,10 +92,14 @@ class BeatInducer {
      *            Clusters collection
      * @param clusterScores
      *            Cluster scores
+     * @param minTempo
+     *            Minimum tempo that may be induced (bpm)
+     * @param maxTempo
+     *            Maximum tempo that may be induced (bpm)
      * @return Beat duration hypotheses
      */
-    private List<Double> induceFromClusters(List<BeatCluster> beatClusters,
-            int[] clusterScores) {
+    private List<Double> induceFromClusters(List<BeatCluster> beatClusters, int[] clusterScores,
+            int minTempo, int maxTempo) {
         if (beatClusters.isEmpty()) {
             return new ArrayList<>();
         }
@@ -326,7 +318,7 @@ class BeatInducer {
      */
     private static class BeatCluster {
         double beatDuration;
-        int size;
+        int    size;
 
         BeatCluster() {
             this(.0);

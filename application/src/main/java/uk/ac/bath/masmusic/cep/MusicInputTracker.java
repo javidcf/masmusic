@@ -25,23 +25,11 @@ import uk.ac.bath.masmusic.protobuf.TimeSpanNote;
 @Component
 public class MusicInputTracker extends EsperStatementSubscriber {
 
-    /** Quantization step size (ms) */
-    private static final int QUANTIZATION = 40; // TODO Use this?
-
     /** Window size for beat analysis (ms) */
     private static final int ANALYSIS_WINDOW = 30000;
 
     /** Frequency of beat analysis (ms) */
     private static final int ANALYSIS_FREQUENCY = 5000;
-
-    /** String format for chord bigram model resources. */
-    private static final String CHORD_BIGRAM_MODEL_RESOURCE_FORMAT = "classpath:generation/%s.cbm";
-
-    /** String format for pitch class model resources. */
-    private static final String PITCH_CLASS_CHORD_MODEL_RESOURCE_FORMAT = "classpath:generation/%s.pcm";
-
-    /** Considered measures period for harmonization. */
-    private static final int HARMONIZATION_MEASURES_PERIOD = 8;
 
     /** Logger */
     private static Logger LOG = LoggerFactory.getLogger(MusicInputTracker.class);
@@ -70,7 +58,6 @@ public class MusicInputTracker extends EsperStatementSubscriber {
                 // + " Math.round(avg(timestamp)) as timestamp"
                 + " noteOnset(*) as onset"
                 + " from TimeSpanNote.win:time(" + ANALYSIS_WINDOW + " msec) "
-                // + " group by Math.round(timestamp / " + QUANTIZATION + ")"
                 + " output snapshot every " + ANALYSIS_FREQUENCY + " msec"
                 + " order by timestamp asc";
     }

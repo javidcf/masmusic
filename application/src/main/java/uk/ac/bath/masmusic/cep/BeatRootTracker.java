@@ -7,11 +7,15 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Component;
 
 import uk.ac.bath.masmusic.analysis.beatroot.BeatRoot;
 import uk.ac.bath.masmusic.common.Beat;
 import uk.ac.bath.masmusic.common.Onset;
-import uk.ac.bath.masmusic.mas.MasMusic;
+import uk.ac.bath.masmusic.common.Rhythm;
+import uk.ac.bath.masmusic.events.RhythmUpdatedEvent;
 import uk.ac.bath.masmusic.protobuf.TimeSpanNote;
 
 /**
@@ -19,11 +23,8 @@ import uk.ac.bath.masmusic.protobuf.TimeSpanNote;
  *
  * @author Javier Dehesa
  */
-//@Component  // This class is not currently used
+@Component
 public class BeatRootTracker extends EsperStatementSubscriber {
-
-    /** Quantization step size (ms) */
-    private static final int QUANTIZATION = 40; // TODO Use this?
 
     /** Window size for beat analysis (ms) */
     private static final int ANALYSIS_WINDOW = 5000;
@@ -35,31 +36,35 @@ public class BeatRootTracker extends EsperStatementSubscriber {
     private static Logger LOG = LoggerFactory.getLogger(BeatRootTracker.class);
 
     @Autowired
-    private MasMusic masMusic;
+    private ApplicationEventPublisher publisher;
 
     /** BeatRoot beat tracker. */
-    @Autowired
-    private BeatRoot beatRoot;
+    private final BeatRoot beatRoot;
 
     /** Events in the last analyzed window (sorted by time) */
     private final ArrayList<Onset> onsets;
 
-    /** Currently tracked beat. */
-    private final AtomicReference<Beat> beat;
+    /** Last known rhythm. */
+    private final AtomicReference<Rhythm> rhythm;
 
     /**
      * Constructor.
      */
     public BeatRootTracker() {
+        beatRoot = new BeatRoot();
         onsets = new ArrayList<>();
-        beat = new AtomicReference<>(null);
+        rhythm = new AtomicReference<>(null);
     }
 
     /**
-     * @return The current beat
+     * Handle a rhythm update event.
+     *
+     * @param event
+     *            The rhythm update event
      */
-    public Beat getCurrentBeat() {
-        return beat.get();
+    @EventListener
+    public void onRhythmUpdated(RhythmUpdatedEvent event) {
+        rhythm.set(event.getRhythm());
     }
 
     /*** Esper ***/
@@ -71,9 +76,8 @@ public class BeatRootTracker extends EsperStatementSubscriber {
     public String getStatementQuery() {
         return "select"
                 // + " Math.round(avg(timestamp)) as timestamp"
-                + "noteOnset(*) as onset"
+                + " noteOnset(*) as onset"
                 + " from TimeSpanNote.win:time(" + ANALYSIS_WINDOW + " msec) "
-                // + " group by Math.round(timestamp / " + QUANTIZATION + ")"
                 + " output snapshot every " + ANALYSIS_FREQUENCY + " msec"
                 + " order by timestamp asc";
     }
@@ -105,13 +109,40 @@ public class BeatRootTracker extends EsperStatementSubscriber {
      * Finish event delivery.
      */
     public void updateEnd() {
-        Beat newBeat = beatRoot.estimateBeat(onsets);
-        onsets.clear();
-        if (newBeat != null) {
-            LOG.debug("New beat: {}", newBeat);
-            beat.set(newBeat);
-            // masMusic.setBeat(newBeat);
+        Rhythm currentRhythm = rhythm.get();
+        if (currentRhythm != null) { // Wait until some rhythm has been detected
+            int currentTempo = currentRhythm.getBeat().getTempo();
+            int minTempo = Math.round(0.9f * currentTempo);
+            int maxTempo = Math.round(1.1f * currentTempo);
+            Beat newBeat = beatRoot.estimateBeat(onsets, minTempo, maxTempo);
+            if (newBeat != null) {
+                Rhythm newRhythm = correctRhythm(currentRhythm, newBeat);
+                LOG.debug("New rhythm: {}", newRhythm);
+                rhythm.set(newRhythm);
+                // Update rhythm
+                publisher.publishEvent(new RhythmUpdatedEvent(this, newRhythm));
+            }
         }
+        onsets.clear();
+    }
+
+    /**
+     * @param currentRhythm
+     *            The current rhythm
+     * @param newBeat
+     *            The new estimated beat
+     * @return The current rhythm corrected with the new beat
+     */
+    private static Rhythm correctRhythm(Rhythm currentRhythm, Beat newBeat) {
+        // Align beat offset
+        long currentTime = System.currentTimeMillis();
+        long referenceBeat = currentRhythm.getBeat().closestBeat(currentTime);
+        long currentBeatNumber = currentRhythm.getBeat().beatNumber(referenceBeat);
+        long newBeatNumber = newBeat.beatNumber(newBeat.closestBeat(referenceBeat));
+        int barBeats = currentRhythm.getTimeSignature().getBeats();
+        int beatOffsetDiff = Math.toIntExact(
+                Math.floorMod(newBeatNumber, barBeats) - Math.floorMod(currentBeatNumber, barBeats));
+        return new Rhythm(newBeat, currentRhythm.getTimeSignature(), currentRhythm.getBeatOffset() + beatOffsetDiff);
     }
 
 }

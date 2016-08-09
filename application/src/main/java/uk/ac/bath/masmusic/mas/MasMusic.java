@@ -9,6 +9,7 @@ import javax.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.event.EventListener;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHandler;
 import org.springframework.messaging.MessagingException;
@@ -16,6 +17,8 @@ import org.springframework.stereotype.Component;
 
 import uk.ac.bath.masmusic.common.Rhythm;
 import uk.ac.bath.masmusic.common.Scale;
+import uk.ac.bath.masmusic.events.RhythmUpdatedEvent;
+import uk.ac.bath.masmusic.events.ScaleUpdatedEvent;
 import uk.ac.bath.masmusic.integration.MusicGateway;
 import uk.ac.bath.masmusic.protobuf.Note;
 import uk.ac.bath.masmusic.protobuf.Pitch;
@@ -81,14 +84,14 @@ public class MasMusic implements MessageHandler, Runnable {
     }
 
     /**
-     * @param scale
-     *            The new scale
+     * Handle a scale update event.
+     *
+     * @param event
+     *            The scale update event
      */
-    public void setScale(Scale scale) {
-        this.scale.set(scale);
-        for (MasMusicAbstractAgent agent : agents) {
-            agent.setScale(scale);
-        }
+    @EventListener
+    public void onScaleUpdated(ScaleUpdatedEvent event) {
+        scale.set(event.getScale());
     }
 
     /**
@@ -99,14 +102,14 @@ public class MasMusic implements MessageHandler, Runnable {
     }
 
     /**
-     * @param rhythm
-     *            The new rhythm
+     * Handle a rhythm update event.
+     *
+     * @param event
+     *            The rhythm update event
      */
-    public void setRhythm(Rhythm rhythm) {
-        this.rhythm.set(rhythm);
-        for (MasMusicAbstractAgent agent : agents) {
-            agent.setRhythm(rhythm);
-        }
+    @EventListener
+    public void onRhythmUpdated(RhythmUpdatedEvent event) {
+        rhythm.set(event.getRhythm());
     }
 
     /**
@@ -176,9 +179,13 @@ public class MasMusic implements MessageHandler, Runnable {
         Note baseNote = Note.valueOf(pitch % 12);
         int octave = (pitch / 12) - 1;
         TimeSpanNote timeSpanNote = timeSpanNoteBuilder
-                .setPitch(pitchBuilder.setNote(baseNote).setOctave(octave))
-                .setVelocity(velocity).setTimestamp(timestamp)
-                .setDuration(duration).build();
+                .setPitch(pitchBuilder
+                        .setNote(baseNote)
+                        .setOctave(octave))
+                .setVelocity(velocity)
+                .setTimestamp(timestamp)
+                .setDuration(duration)
+                .build();
         musicPlayer.play(timeSpanNote);
     }
 }

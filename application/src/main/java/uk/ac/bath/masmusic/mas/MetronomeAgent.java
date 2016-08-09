@@ -50,23 +50,17 @@ public class MetronomeAgent extends MasMusicAbstractAgent {
         }
     }
 
-    private void metronome(long start, int bars, Rhythm rhythm) {
-        // Emit notes like displaying the bars structure
-        long currentBeat = rhythm.nextBar(start);
+    private void metronome(long start, int beats, Rhythm rhythm) {
+        // Emit notes displaying the bar structure
+        final int FIRST_PITCH = 103;
+        final int NEXT_PITCH = 96;
         Beat beat = rhythm.getBeat();
         int beatDuration = beat.getDuration();
-        int firstBeatPitch = 103;
-        int nextBeatsPitch = 96;
-        for (int iBar = 0; iBar < bars; iBar++) {
-            playNote(firstBeatPitch, DEFAULT_VELOCITY, currentBeat,
-                    beatDuration);
+        long currentBeat = beat.nextBeat(start);
+        for (int iBar = 0; iBar < beats; iBar++) {
+            int beatPosition = rhythm.beatPosition(currentBeat);
+            playNote(beatPosition == 0 ? FIRST_PITCH : NEXT_PITCH, DEFAULT_VELOCITY, currentBeat, beatDuration);
             currentBeat = beat.nextBeat(currentBeat);
-            for (int iBeat = 1; iBeat < rhythm.getTimeSignature()
-                    .getBeats(); iBeat++) {
-                playNote(nextBeatsPitch, DEFAULT_VELOCITY, currentBeat,
-                        beatDuration);
-                currentBeat = beat.nextBeat(currentBeat);
-            }
         }
     }
 

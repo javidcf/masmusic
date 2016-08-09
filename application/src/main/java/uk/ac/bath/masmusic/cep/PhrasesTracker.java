@@ -9,12 +9,14 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import uk.ac.bath.masmusic.analysis.phrase.PhraseExtractor;
 import uk.ac.bath.masmusic.common.Onset;
 import uk.ac.bath.masmusic.common.Phrase;
 import uk.ac.bath.masmusic.common.Rhythm;
+import uk.ac.bath.masmusic.events.RhythmUpdatedEvent;
 import uk.ac.bath.masmusic.protobuf.TimeSpanNote;
 
 /**
@@ -24,9 +26,6 @@ import uk.ac.bath.masmusic.protobuf.TimeSpanNote;
  */
 @Component
 public class PhrasesTracker extends EsperStatementSubscriber {
-
-    /** Quantization step size (ms) */
-    private static final int QUANTIZATION = 40; // TODO Use this?
 
     /** Window size for beat analysis (ms) */
     private static final int ANALYSIS_WINDOW = 60000;
@@ -43,6 +42,9 @@ public class PhrasesTracker extends EsperStatementSubscriber {
     /** Phrase extractor. */
     private final PhraseExtractor phraseExtractor;
 
+    /** Last known rhythm. */
+    private final AtomicReference<Rhythm> rhythm;
+
     /** Events in the last analyzed window (sorted by time) */
     private final ArrayList<Onset> onsets;
 
@@ -54,6 +56,7 @@ public class PhrasesTracker extends EsperStatementSubscriber {
      */
     public PhrasesTracker() {
         phraseExtractor = new PhraseExtractor();
+        rhythm = new AtomicReference<>();
         onsets = new ArrayList<>();
         extractedPhrases = new AtomicReference<>(Collections.emptyList());
     }
@@ -63,6 +66,17 @@ public class PhrasesTracker extends EsperStatementSubscriber {
      */
     public List<Phrase> getExtractedPhrases() {
         return extractedPhrases.get();
+    }
+
+    /**
+     * Handle a rhythm update event.
+     *
+     * @param event
+     *            The rhythm update event
+     */
+    @EventListener
+    public void onRhythmUpdated(RhythmUpdatedEvent event) {
+        rhythm.set(event.getRhythm());
     }
 
     /*** Esper ***/
@@ -76,7 +90,6 @@ public class PhrasesTracker extends EsperStatementSubscriber {
                 // + " Math.round(avg(timestamp)) as timestamp"
                 + " noteOnset(*) as onset"
                 + " from TimeSpanNote.win:time(" + ANALYSIS_WINDOW + " msec) "
-                // + " group by Math.round(timestamp / " + QUANTIZATION + ")"
                 + " output snapshot every " + ANALYSIS_FREQUENCY + " msec" + " order by timestamp asc";
     }
 
@@ -110,12 +123,12 @@ public class PhrasesTracker extends EsperStatementSubscriber {
         if (onsets.isEmpty()) {
             return;
         }
-        Rhythm rhythm = rhythmDetector.getDetectedRhtyhm();
-        if (rhythm == null) {
+        Rhythm currentRhythm = rhythm.get();
+        if (currentRhythm == null) {
             return;
         }
 
-        List<Phrase> phrases = phraseExtractor.extractPhrases(onsets, rhythm);
+        List<Phrase> phrases = phraseExtractor.extractPhrases(onsets, currentRhythm);
         extractedPhrases.set(Collections.unmodifiableList(phrases));
 
         onsets.clear();

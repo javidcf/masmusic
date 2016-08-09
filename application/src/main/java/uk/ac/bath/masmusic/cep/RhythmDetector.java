@@ -14,7 +14,6 @@ import uk.ac.bath.masmusic.common.Beat;
 import uk.ac.bath.masmusic.common.Rhythm;
 import uk.ac.bath.masmusic.common.TimeSignature;
 import uk.ac.bath.masmusic.events.RhythmUpdatedEvent;
-import uk.ac.bath.masmusic.mas.MasMusic;
 import uk.ac.bath.masmusic.protobuf.TimeSpanNote;
 
 /**
@@ -24,9 +23,6 @@ import uk.ac.bath.masmusic.protobuf.TimeSpanNote;
  */
 @Component
 public class RhythmDetector extends EsperStatementSubscriber {
-
-    /** Quantization step size (ms) */
-    private static final int QUANTIZATION = 40; // TODO Use this?
 
     /** Window size for beat analysis (ms) */
     private static final int ANALYSIS_WINDOW = 5000;
@@ -39,9 +35,6 @@ public class RhythmDetector extends EsperStatementSubscriber {
 
     @Autowired
     private ApplicationEventPublisher publisher;
-
-    @Autowired
-    private MasMusic masMusic;
 
     /** Events in the last analysed window (sorted by time) */
     private final ArrayList<Long> onsetTimes;
@@ -80,7 +73,6 @@ public class RhythmDetector extends EsperStatementSubscriber {
                 // + " Math.round(avg(timestamp)) as timestamp"
                 + " timestamp"
                 + " from TimeSpanNote.win:time(" + ANALYSIS_WINDOW + " msec) "
-                // + " group by Math.round(timestamp / " + QUANTIZATION + ")"
                 + " output snapshot every " + ANALYSIS_FREQUENCY + " msec"
                 + " order by timestamp asc";
     }
@@ -155,8 +147,6 @@ public class RhythmDetector extends EsperStatementSubscriber {
         rhythm.set(newRhythm);
         // Update rhythm
         publisher.publishEvent(new RhythmUpdatedEvent(this, newRhythm));
-        // Update rhythm in MAS
-        masMusic.setRhythm(newRhythm);
         // Stop listening statement
         getStatement().stop();
     }
