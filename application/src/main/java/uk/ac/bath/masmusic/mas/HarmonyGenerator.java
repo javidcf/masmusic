@@ -11,13 +11,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.event.EventListener;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 
 import uk.ac.bath.masmusic.common.Onset;
 import uk.ac.bath.masmusic.common.Rhythm;
 import uk.ac.bath.masmusic.common.Scale;
-import uk.ac.bath.masmusic.common.TimeSignature;
+import uk.ac.bath.masmusic.events.RhythmUpdatedEvent;
+import uk.ac.bath.masmusic.events.ScaleUpdatedEvent;
 import uk.ac.bath.masmusic.generation.harmony.ChordBigramModel;
 import uk.ac.bath.masmusic.generation.harmony.ChordBigramModelReader;
 import uk.ac.bath.masmusic.generation.harmony.Harmonizer;
@@ -54,14 +56,11 @@ public class HarmonyGenerator {
     /** Loaded pitch class chord models. */
     private final Map<String, PitchClassChordModel> pitchClassChordModels;
 
-    /** The harmonization scale. */
+    /** Current rhythm. */
+    private Rhythm rhythm;
+
+    /** Current rhythm. */
     private Scale scale;
-
-    /** The harmonization time signature. */
-    private TimeSignature timeSignature;
-
-    /** The harmonization beat offset. */
-    private int beatOffset;
 
     /** Harmonizer. */
     private Harmonizer harmonizer;
@@ -72,72 +71,57 @@ public class HarmonyGenerator {
     public HarmonyGenerator() {
         chordBigramModels = new HashMap<>();
         pitchClassChordModels = new HashMap<>();
+        rhythm = null;
         scale = null;
-        timeSignature = null;
-        beatOffset = -1;
-        harmonizer = null;
     }
 
     /**
-     * @return True if the harmonizer has an harmonization, false otherwise
+     * Handle a rhythm update event.
+     *
+     * @param event
+     *            The rhythm update event
      */
-    public synchronized boolean hasHarmonization() {
-        return harmonizer != null && harmonizer.hasHarmonization();
+    @EventListener
+    public synchronized void onRhythmUpdated(RhythmUpdatedEvent event) {
+        setRhythm(event.getRhythm());
     }
 
     /**
-     * Get the harmony for a music segment.
+     * Set the harmonization rhythm.
      *
      * @param rhythm
-     *            The rhythm of the generated harmony
-     * @param scale
-     *            The scale of the generated harmony
-     * @param timestamp
-     *            Timestamp of the first harmony bar; if the timestamp does not
-     *            match exactly the beginning of a bar, then the next closest
-     *            bar will be the first one
-     * @param bars
-     *            Length of the generated harmony in bars
-     * @return The generated harmony, or an empty list if no harmony could be
-     *         generated
+     *            The new rhythm
      */
-    public synchronized List<Onset> getHarmony(Rhythm rhythm, Scale scale, long timestamp, int bars) {
-        Objects.requireNonNull(rhythm);
-        Objects.requireNonNull(scale);
-        if (bars < 0) {
-            throw new IllegalArgumentException("The number of bars cannot be negative");
+    private synchronized void setRhythm(Rhythm rhythm) {
+        if (this.rhythm != null && !this.rhythm.getTimeSignature().equals(rhythm.getTimeSignature())) {
+            harmonizer.clearHarmonization();
         }
-        if (rhythm.getTimeSignature().equals(timeSignature)
-                && rhythm.getBeatOffset() == beatOffset
-                && scale.equals(this.scale)
-                && harmonizer.hasHarmonization()) {
-            return harmonizer.getHarmony(rhythm, timestamp, bars, 3, MasMusic.DEFAULT_VELOCITY);
-        } else {
-            return Collections.emptyList();
+        this.rhythm = rhythm;
+        if (harmonizer != null) {
+            harmonizer.setRhythm(rhythm);
         }
     }
 
     /**
-     * Harmonize a melody.
+     * Handle a scale update event.
+     *
+     * @param event
+     *            The scale update event
+     */
+    @EventListener
+    public void onScaleUpdated(ScaleUpdatedEvent event) {
+        setScale(event.getScale());
+    }
+
+    /**
+     * Set the harmonization scale.
      *
      * @param scale
-     *            Scale of the melody
-     * @param rhythm
-     *            Rhythm of the melody
-     * @param onsets
-     *            Onsets containing the melody
+     *            The new scale
      */
-    public synchronized void harmonize(Scale scale, Rhythm rhythm, List<Onset> onsets) {
-        Objects.requireNonNull(scale);
-        Objects.requireNonNull(rhythm);
-        Objects.requireNonNull(onsets);
-        LOG.debug("Harmonizing melody in {}", scale);
-        // Create a new harmonizer if the scale type or the time signature has changed
-        if (this.scale == null
-                || !scale.getType().equals(this.scale.getType())
-                || this.timeSignature == null
-                || !rhythm.getTimeSignature().equals(this.timeSignature)
-                || this.beatOffset != rhythm.getBeatOffset()) {
+    private synchronized void setScale(Scale scale) {
+        // Create new harmonizer on new scale type
+        if (this.scale == null || !this.scale.getType().equals(scale.getType())) {
             String scaleType = scale.getType();
             ChordBigramModel chordBigramModel = getChordBigramModel(scaleType);
             if (chordBigramModel == null) {
@@ -150,13 +134,102 @@ public class HarmonyGenerator {
                         "No pitch class chord model available for scale type '" + scaleType + "'");
             }
             harmonizer = new Harmonizer(HARMONIZATION_MEASURES_PERIOD, chordBigramModel, pitchClassChordModel);
+            if (this.rhythm != null) {
+                harmonizer.setRhythm(rhythm);
+            }
+        }
+        // Clear harmonization on new scale
+        if (scale.equals(this.scale)) {
+            harmonizer.clearHarmonization();
+        }
+        this.scale = scale;
+    }
+
+    /**
+     * @return True if the harmonizer has an harmonization, false otherwise
+     */
+    public synchronized boolean hasHarmonization() {
+        return harmonizer != null && harmonizer.hasHarmonization();
+    }
+
+    /**
+     * Get the harmony for a music segment.
+     *
+     * @param scale
+     *            The scale of the harmony
+     * @param rhythm
+     *            The rhythm of the harmony
+     * @param timestamp
+     *            Timestamp of the first harmony bar; if the timestamp does not
+     *            match exactly the beginning of a bar, then the next closest
+     *            bar will be the first one
+     * @param bars
+     *            Length of the generated harmony in bars
+     * @return The generated harmony, or an empty list if no harmony could be
+     *         generated
+     */
+    public synchronized List<Onset> getHarmony(Scale scale, Rhythm rhythm, long timestamp, int bars) {
+        Objects.requireNonNull(scale);
+        Objects.requireNonNull(rhythm);
+        setScale(scale);
+        setRhythm(rhythm);
+        return getHarmony(timestamp, bars);
+    }
+
+    /**
+     * Get the harmony for a music segment.
+     *
+     * @param timestamp
+     *            Timestamp of the first harmony bar; if the timestamp does not
+     *            match exactly the beginning of a bar, then the next closest
+     *            bar will be the first one
+     * @param bars
+     *            Length of the generated harmony in bars
+     * @return The generated harmony, or an empty list if no harmony could be
+     *         generated
+     */
+    public synchronized List<Onset> getHarmony(long timestamp, int bars) {
+        if (bars < 0) {
+            throw new IllegalArgumentException("The number of bars cannot be negative");
+        }
+        if (rhythm != null && scale != null && harmonizer.hasHarmonization()) {
+            return harmonizer.getHarmony(rhythm, timestamp, bars, 3, MasMusic.DEFAULT_VELOCITY);
+        } else {
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * Harmonize a melody.
+     *
+     * @param scale
+     *            The harmonization scale
+     * @param rhythm
+     *            The harmonization rhythm
+     * @param onsets
+     *            Onsets containing the melody
+     */
+    public synchronized void harmonize(Scale scale, Rhythm rhythm, List<Onset> onsets) {
+        Objects.requireNonNull(scale);
+        Objects.requireNonNull(rhythm);
+        setScale(scale);
+        setRhythm(rhythm);
+        harmonize(onsets);
+    }
+
+    /**
+     * Harmonize a melody.
+     *
+     * @param onsets
+     *            Onsets containing the melody
+     */
+    public synchronized void harmonize(List<Onset> onsets) {
+        LOG.debug("Harmonizing melody in {}", scale);
+        if (scale == null || rhythm == null || harmonizer == null) {
+            return;
         }
         boolean harmonized = harmonizer.harmonize(scale, rhythm, onsets);
-        if (harmonized) {
-            this.scale = scale;
-            this.timeSignature = rhythm.getTimeSignature();
-            this.beatOffset = rhythm.getBeatOffset();
-        } else {
+        if (!harmonized) {
             LOG.debug("Could not perform harmonization");
         }
     }

@@ -46,11 +46,11 @@ public class Harmonizer {
     /** Pitch class chord model. */
     private final PitchClassChordModel pitchClassChordModel;
 
-    /** The time signature used in the current harmonization. */
-    private TimeSignature timeSignature;
+    /** The rhythm used in the current harmonization. */
+    private Rhythm rhythm;
 
-    /** The beat offset used in the current harmonization. */
-    private int beatOffset;
+    /** Base index for the harmonization segments. */
+    private int baseIndex;
 
     /** Last produced harmonization. */
     private final List<Chord> harmonization;
@@ -73,8 +73,8 @@ public class Harmonizer {
         this.harmonizationMeasuresPeriod = harmonizationMeasuresPeriod;
         this.chordBigramModel = chordBigramModel;
         this.pitchClassChordModel = pitchClassChordModel;
-        this.timeSignature = null;
-        this.beatOffset = -1;
+        this.rhythm = null;
+        this.baseIndex = -1;
         this.harmonization = new ArrayList<>();
     }
 
@@ -90,6 +90,30 @@ public class Harmonizer {
      */
     public void clearHarmonization() {
         harmonization.clear();
+    }
+
+    /**
+     * Set the rhythm used by the harmonizer.
+     *
+     * If the harmonizer does not currently have any harmonization, then this
+     * method just saves the given rhythm to be used on the next harmonization
+     * process. However, if an harmonization exists, then it is adapted to match
+     * the previous known rhythm as close as possible.
+     *
+     * @param rhythm
+     *            The new rhythm for the harmonizer
+     */
+    public void setRhythm(Rhythm rhythm) {
+        Objects.requireNonNull(rhythm);
+        if (hasHarmonization()) {
+            long currentTime = System.currentTimeMillis();
+            long currentReferenceBeat = this.rhythm.getBeat().closestBeat(currentTime);
+            int currentDivisionId = getDivisionId(currentReferenceBeat, this.rhythm);
+            long newReferenceBeat = rhythm.getBeat().closestBeat(currentReferenceBeat);
+            int newDivisionId = getDivisionId(newReferenceBeat, this.rhythm);
+            baseIndex = (baseIndex + (newDivisionId - currentDivisionId)) % harmonization.size();
+        }
+        this.rhythm = rhythm;
     }
 
     /**
@@ -120,14 +144,15 @@ public class Harmonizer {
         if (bars < 0) {
             throw new IllegalArgumentException("The number of bars cannot be negative");
         }
-        if (!Objects.equals(rhythm.getTimeSignature(), timeSignature) || rhythm.getBeatOffset() != beatOffset) {
-            throw new IllegalArgumentException(
-                    "The time signature and beat offset of the rhythm must be the same used for harmonization");
-        }
         if (!hasHarmonization()) {
             throw new IllegalStateException("An harmonization must have been computed first");
         }
-
+        if (this.rhythm == null
+                || rhythm.getTimeSignature().equals(this.rhythm.getTimeSignature())
+                || rhythm.getBeatOffset() != this.rhythm.getBeatOffset()) {
+            throw new IllegalArgumentException(
+                    "The time signature and beat offset of the rhythm must be the same used for harmonization");
+        }
         timestamp = rhythm.nextBar(timestamp - 1);
         int measureDivisions = getMeasureDivisions(rhythm.getTimeSignature());
         int divisionLength = rhythm.getBarDuration() / measureDivisions;
@@ -211,14 +236,15 @@ public class Harmonizer {
             repeat++;
         }
         LOG.debug("Harmonization process repeated {} time(s)", repeat);
+
         // Check harmonization is complete
         if (newHarmonization.contains(null)) {
             return false;
         }
-        harmonization.clear();
-        harmonization.addAll(newHarmonization);
-        timeSignature = rhythm.getTimeSignature();
-        beatOffset = rhythm.getBeatOffset();
+        this.harmonization.clear();
+        this.harmonization.addAll(newHarmonization);
+        this.rhythm = rhythm;
+        this.baseIndex = 0;
         return true;
     }
 
@@ -315,7 +341,7 @@ public class Harmonizer {
         int totalDivisions = measureDivisions * this.harmonizationMeasuresPeriod;
         double divisionLength = rhythm.getBarDuration() / ((double) measureDivisions);
         int firstMeasureOffset = rhythm.getBeat().getPhase() + rhythm.getBeatOffset() * rhythm.getBeat().getDuration();
-        return (int) (Math.round((timestamp - firstMeasureOffset - divisionLength / 2) / (divisionLength))
+        return (int) ((Math.round((timestamp - firstMeasureOffset - divisionLength / 2) / (divisionLength)) + baseIndex)
                 % totalDivisions);
     }
 

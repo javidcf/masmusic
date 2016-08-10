@@ -71,7 +71,7 @@ public class HarmonizerAgent extends MasMusicAbstractAgent {
             Scale scale = new Scale(Note.fromValue(fundamental), scaleName);
 
             // Generate harmony and play it
-            List<Onset> harmony = harmonyGenerator.getHarmony(rhythm, scale, start, bars);
+            List<Onset> harmony = harmonyGenerator.getHarmony(scale, rhythm, start, bars);
             for (Onset onset : harmony) {
                 masMusic.play(onset.getPitch(), onset.getVelocity(), onset.getTimestamp(), onset.getDuration());
             }
