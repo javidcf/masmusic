@@ -139,7 +139,7 @@ public class HarmonyGenerator {
             }
         }
         // Clear harmonization on new scale
-        if (scale.equals(this.scale)) {
+        if (!scale.equals(this.scale)) {
             harmonizer.clearHarmonization();
         }
         this.scale = scale;
