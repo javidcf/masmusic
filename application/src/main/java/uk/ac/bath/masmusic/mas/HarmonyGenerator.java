@@ -121,8 +121,8 @@ public class HarmonyGenerator {
      */
     private synchronized void setScale(Scale scale) {
         // Create new harmonizer on new scale type
-        if (this.scale == null || !this.scale.getType().equals(scale.getType())) {
-            String scaleType = scale.getType();
+        if (this.scale == null || !this.scale.getType().equalsIgnoreCase(scale.getType())) {
+            String scaleType = scale.getType().toLowerCase();
             ChordBigramModel chordBigramModel = getChordBigramModel(scaleType);
             if (chordBigramModel == null) {
                 throw new IllegalArgumentException(
@@ -193,7 +193,7 @@ public class HarmonyGenerator {
             throw new IllegalArgumentException("The number of bars cannot be negative");
         }
         if (rhythm != null && scale != null && harmonizer.hasHarmonization()) {
-            return harmonizer.getHarmony(rhythm, timestamp, bars, 3, MasMusic.DEFAULT_VELOCITY);
+            return harmonizer.getHarmony(timestamp, bars, 3, MasMusic.DEFAULT_VELOCITY);
         } else {
             return Collections.emptyList();
         }
@@ -241,6 +241,7 @@ public class HarmonyGenerator {
      *         null if the table does not exist
      */
     private ChordBigramModel getChordBigramModel(String scaleType) {
+        scaleType = scaleType.toLowerCase();
         if (!chordBigramModels.containsKey(scaleType)) {
             Resource tableRes = ctx
                     .getResource(String.format(CHORD_BIGRAM_MODEL_RESOURCE_FORMAT, scaleType.toLowerCase()));
@@ -262,6 +263,7 @@ public class HarmonyGenerator {
      *         type, or null if the table does not exist
      */
     private PitchClassChordModel getPitchClassChordModel(String scaleType) {
+        scaleType = scaleType.toLowerCase();
         if (!pitchClassChordModels.containsKey(scaleType)) {
             Resource tableRes = ctx
                     .getResource(String.format(PITCH_CLASS_CHORD_MODEL_RESOURCE_FORMAT, scaleType.toLowerCase()));

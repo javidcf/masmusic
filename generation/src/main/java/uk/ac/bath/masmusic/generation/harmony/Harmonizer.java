@@ -106,6 +106,11 @@ public class Harmonizer {
     public void setRhythm(Rhythm rhythm) {
         Objects.requireNonNull(rhythm);
         if (hasHarmonization()) {
+            assert this.rhythm != null;
+            if (!this.rhythm.getTimeSignature().equals(rhythm.getTimeSignature())) {
+                throw new IllegalArgumentException(
+                        "The time signature of the new rhythm must match the one used for hamornization");
+            }
             long currentTime = System.currentTimeMillis();
             long currentReferenceBeat = this.rhythm.getBeat().closestBeat(currentTime);
             int currentDivisionId = getDivisionId(currentReferenceBeat, this.rhythm);
@@ -123,10 +128,6 @@ public class Harmonizer {
      * before through a successful call to {@link #harmonize} (that is,
      * {@link #hasHarmonization} must be true).
      *
-     * @param rhythm
-     *            The rhythm of the generated harmony; the time signature and
-     *            beat offset of this rhythm must match that of the rhythm used
-     *            to compute the harmonization
      * @param timestamp
      *            Timestamp of the first harmony bar; if the timestamp does not
      *            match exactly the beginning of a bar, then the next closest
@@ -139,19 +140,12 @@ public class Harmonizer {
      *            The velocity value of the generated onsets
      * @return The generated harmony
      */
-    public List<Onset> getHarmony(Rhythm rhythm, long timestamp, int bars, int octave, int velocity) {
-        Objects.requireNonNull(rhythm);
+    public List<Onset> getHarmony(long timestamp, int bars, int octave, int velocity) {
         if (bars < 0) {
             throw new IllegalArgumentException("The number of bars cannot be negative");
         }
         if (!hasHarmonization()) {
             throw new IllegalStateException("An harmonization must have been computed first");
-        }
-        if (this.rhythm == null
-                || rhythm.getTimeSignature().equals(this.rhythm.getTimeSignature())
-                || rhythm.getBeatOffset() != this.rhythm.getBeatOffset()) {
-            throw new IllegalArgumentException(
-                    "The time signature and beat offset of the rhythm must be the same used for harmonization");
         }
         timestamp = rhythm.nextBar(timestamp - 1);
         int measureDivisions = getMeasureDivisions(rhythm.getTimeSignature());
@@ -346,7 +340,7 @@ public class Harmonizer {
     }
 
     private static class ChordProbability {
-        final Chord  chord;
+        final Chord chord;
         final double probability;
 
         ChordProbability(Chord chord, double probability) {
