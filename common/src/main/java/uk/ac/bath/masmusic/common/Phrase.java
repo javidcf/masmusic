@@ -75,6 +75,23 @@ public class Phrase implements Iterable<Phrase.Element> {
     }
 
     /**
+     * @return The duration of the phrase in beats
+     */
+    public double getDuration() {
+        if (size() < 1) {
+            return 0;
+        }
+        double max = Double.NEGATIVE_INFINITY;
+        for (Element element : this) {
+            double current = element.getPosition() + element.getScoreElement().getDuration();
+            if (current > max) {
+                max = current;
+            }
+        }
+        return max;
+    }
+
+    /**
      * Add an element to the phrase.
      *
      * @param element

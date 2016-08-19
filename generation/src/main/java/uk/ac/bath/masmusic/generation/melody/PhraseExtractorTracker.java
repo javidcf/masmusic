@@ -1,4 +1,4 @@
-package uk.ac.bath.masmusic.analysis.phrase;
+package uk.ac.bath.masmusic.generation.melody;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -16,7 +16,7 @@ public class PhraseExtractorTracker implements Comparable<PhraseExtractorTracker
     private final Phrase phrase;
 
     /** Initial position of the tracker in beats. */
-    private float initialPosition;
+    private double initialPosition;
 
     /** Position of the tracker in beats. */
     private double position;
@@ -43,7 +43,7 @@ public class PhraseExtractorTracker implements Comparable<PhraseExtractorTracker
      * @param initialPosition
      *            Initial position of the tracker in beats
      */
-    public PhraseExtractorTracker(float initialPosition) {
+    public PhraseExtractorTracker(double initialPosition) {
         this.phrase = new Phrase();
         this.initialPosition = initialPosition;
         this.position = initialPosition;

@@ -12,11 +12,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-import uk.ac.bath.masmusic.analysis.phrase.PhraseExtractor;
 import uk.ac.bath.masmusic.common.Onset;
 import uk.ac.bath.masmusic.common.Phrase;
 import uk.ac.bath.masmusic.common.Rhythm;
 import uk.ac.bath.masmusic.events.RhythmUpdatedEvent;
+import uk.ac.bath.masmusic.generation.melody.PhraseExtractor;
 import uk.ac.bath.masmusic.protobuf.TimeSpanNote;
 
 /**

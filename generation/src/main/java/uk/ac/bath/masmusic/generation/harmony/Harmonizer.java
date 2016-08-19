@@ -115,7 +115,7 @@ public class Harmonizer {
             long currentReferenceBeat = this.rhythm.getBeat().closestBeat(currentTime);
             int currentDivisionId = getDivisionId(currentReferenceBeat, this.rhythm);
             long newReferenceBeat = rhythm.getBeat().closestBeat(currentReferenceBeat);
-            int newDivisionId = getDivisionId(newReferenceBeat, this.rhythm);
+            int newDivisionId = getDivisionId(newReferenceBeat, rhythm);
             baseIndex = (baseIndex + (newDivisionId - currentDivisionId)) % harmonization.size();
         }
         this.rhythm = rhythm;
@@ -334,9 +334,8 @@ public class Harmonizer {
         int measureDivisions = getMeasureDivisions(rhythm.getTimeSignature());
         int totalDivisions = measureDivisions * this.harmonizationMeasuresPeriod;
         double divisionLength = rhythm.getBarDuration() / ((double) measureDivisions);
-        int firstMeasureOffset = rhythm.getBeat().getPhase() + rhythm.getBeatOffset() * rhythm.getBeat().getDuration();
-        return (int) ((Math.round((timestamp - firstMeasureOffset - divisionLength / 2) / (divisionLength)) + baseIndex)
-                % totalDivisions);
+        return (int) ((Math.round((timestamp - rhythm.getFirstBarOffset() - divisionLength / 2) / (divisionLength))
+                + baseIndex) % totalDivisions);
     }
 
     private static class ChordProbability {

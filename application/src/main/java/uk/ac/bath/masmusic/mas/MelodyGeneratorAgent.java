@@ -21,13 +21,13 @@ import uk.ac.bath.masmusic.common.TimeSignature;
  * @author Javier Dehesa
  */
 @Component
-public class MelodyAgent extends MasMusicAbstractAgent {
+public class MelodyGeneratorAgent extends MasMusicAbstractAgent {
 
     /** Logger */
-    private static Logger LOG = LoggerFactory.getLogger(MelodyAgent.class);
+    private static Logger LOG = LoggerFactory.getLogger(MelodyGeneratorAgent.class);
 
     /** Agent ASL source path. */
-    private static final String ASL_PATH = "/asl/melodyAgent.asl";
+    private static final String ASL_PATH = "/asl/melodyGeneratorAgent.asl";
 
     @Autowired
     private MasMusic masMusic;
@@ -35,7 +35,7 @@ public class MelodyAgent extends MasMusicAbstractAgent {
     @Autowired
     private MelodyGenerator melodyGenerator;
 
-    public MelodyAgent() {
+    public MelodyGeneratorAgent() {
         initAgent(ASL_PATH);
     }
 
