@@ -139,20 +139,43 @@ public class Beat implements Cloneable {
      *
      * @param timestamp
      *            Time at which the subbeat time is computed
-     * @param subdivision
-     *            Subdivision level of the beat considered
+     * @param binarySubdivision
+     *            Level of binary beat subdivisons allowed (0 for no
+     *            subdivision, 1 for 2 subdivisions, 2 for 4, etc.)
      * @return The last subbeat that happened at the given timestamp
      */
-    public long currentSubbeat(long timestamp, int subdivision) {
-        if (subdivision < 0) {
+    public long currentSubbeat(long timestamp, int binarySubdivision) {
+        return currentSubbeat(timestamp, binarySubdivision, 0);
+    }
+
+    /**
+     * Get the timestamp of the last subbeat that happened at the given time.
+     *
+     * The returned timestamp is always preceding or equal to the given one.
+     *
+     * @param timestamp
+     *            Time at which the subbeat time is computed
+     * @param binarySubdivision
+     *            Level of binary beat subdivisons allowed (0 for no
+     *            subdivision, 1 for 2 subdivisions, 2 for 4, etc.)
+     * @param ternarySubdivision
+     *            Level of ternary beat subdivisons allowed (0 for no
+     *            subdivision, 1 for 3 subdivisions, 2 for 9, etc.)
+     * @return The last subbeat that happened at the given timestamp
+     */
+    public long currentSubbeat(long timestamp, int binarySubdivision, int ternarySubdivision) {
+        if (binarySubdivision < 0) {
             throw new IllegalArgumentException(
                     "The allowed subdivision level cannot be negative");
         }
         long prevBeat = currentBeat(timestamp);
-        int subbeatDuration = Math.round(duration / (float) (1 << subdivision));
-        long subbeat = ((timestamp - prevBeat) / subbeatDuration)
-                * subbeatDuration;
-        return prevBeat + subbeat;
+        int binarySubbeatDuration = Math.toIntExact(Math.round(duration / (double) (1 << binarySubdivision)));
+        long binarySubbeat = ((timestamp - prevBeat) / binarySubbeatDuration) * binarySubbeatDuration;
+        double numTernarySubdivisions = ternarySubdivision == 0 ? 1
+                : ternarySubdivision == 1 ? 3 : Math.pow(3, ternarySubdivision);
+        int ternarySubbeatDuration = Math.toIntExact(Math.round(duration / numTernarySubdivisions));
+        long ternarySubbeat = ((timestamp - prevBeat) / ternarySubbeatDuration) * ternarySubbeatDuration;
+        return prevBeat + Math.max(binarySubbeat, ternarySubbeat);
     }
 
     /**
@@ -162,20 +185,43 @@ public class Beat implements Cloneable {
      *
      * @param timestamp
      *            Time at which the next subbeat time is computed
-     * @param subdivision
-     *            Subdivision level of the beat considered
+     * @param binarySubdivision
+     *            Level of binary beat subdivisons allowed (0 for no
+     *            subdivision, 1 for 2 subdivisions, 2 for 4, etc.)
      * @return The next subbeat that will happen after the given timestamp
      */
-    public long nextSubbeat(long timestamp, int subdivision) {
-        if (subdivision < 0) {
+    public long nextSubbeat(long timestamp, int binarySubdivision) {
+        return nextSubbeat(timestamp, binarySubdivision, 0);
+    }
+
+    /**
+     * Get the timestamp of the next subbeat after the given time.
+     *
+     * The returned timestamp is always posterior to the given one.
+     *
+     * @param timestamp
+     *            Time at which the next subbeat time is computed
+     * @param binarySubdivision
+     *            Level of binary beat subdivisons allowed (0 for no
+     *            subdivision, 1 for 2 subdivisions, 2 for 4, etc.)
+     * @param ternarySubdivision
+     *            Level of ternary beat subdivisons allowed (0 for no
+     *            subdivision, 1 for 3 subdivisions, 2 for 9, etc.)
+     * @return The next subbeat that will happen after the given timestamp
+     */
+    public long nextSubbeat(long timestamp, int binarySubdivision, int ternarySubdivision) {
+        if (binarySubdivision < 0) {
             throw new IllegalArgumentException(
                     "The allowed subdivision level cannot be negative");
         }
         long nextBeat = nextBeat(timestamp);
-        int subbeatDuration = Math.round(duration / (float) (1 << subdivision));
-        long subbeat = ((nextBeat - timestamp) / subbeatDuration)
-                * subbeatDuration;
-        return nextBeat - subbeat;
+        int binarySubbeatDuration = Math.toIntExact(Math.round(duration / (double) (1 << binarySubdivision)));
+        long binarySubbeat = ((nextBeat - timestamp) / binarySubbeatDuration) * binarySubbeatDuration;
+        double numTernarySubdivisions = ternarySubdivision == 0 ? 1
+                : ternarySubdivision == 1 ? 3 : Math.pow(3, ternarySubdivision);
+        int ternarySubbeatDuration = Math.toIntExact(Math.round(duration / numTernarySubdivisions));
+        long ternarySubbeat = ((nextBeat - timestamp) / ternarySubbeatDuration) * ternarySubbeatDuration;
+        return nextBeat - Math.max(binarySubbeat, ternarySubbeat);
     }
 
     /**
@@ -186,17 +232,38 @@ public class Beat implements Cloneable {
      *
      * @param timestamp
      *            Time at which the closest subbeat time is computed
-     * @param subdivision
-     *            Subdivision level of the beat considered
+     * @param binarySubdivision
+     *            Level of binary beat subdivisons allowed (0 for no
+     *            subdivision, 1 for 2 subdivisions, 2 for 4, etc.)
      * @return The closest subbeat to the timestamp
      */
-    public long closestSubbeat(long timestamp, int subdivision) {
-        if (subdivision < 0) {
+    public long closestSubbeat(long timestamp, int binarySubdivision) {
+        return closestSubbeat(timestamp, binarySubdivision, 0);
+    }
+
+    /**
+     * Get the timestamp of the subbeat that is closest to the given timestamp.
+     *
+     * The returned timestamp may be equal, preceding or posterior to the given
+     * timestamp.
+     *
+     * @param timestamp
+     *            Time at which the closest subbeat time is computed
+     * @param binarySubdivision
+     *            Level of binary beat subdivisons allowed (0 for no
+     *            subdivision, 1 for 2 subdivisions, 2 for 4, etc.)
+     * @param ternarySubdivision
+     *            Level of ternary beat subdivisons allowed (0 for no
+     *            subdivision, 1 for 3 subdivisions, 2 for 9, etc.)
+     * @return The closest subbeat to the timestamp
+     */
+    public long closestSubbeat(long timestamp, int binarySubdivision, int ternarySubdivision) {
+        if (binarySubdivision < 0 || ternarySubdivision < 0) {
             throw new IllegalArgumentException(
                     "The allowed subdivision level cannot be negative");
         }
-        long prev = currentSubbeat(timestamp, subdivision);
-        long next = nextSubbeat(timestamp, subdivision);
+        long prev = currentSubbeat(timestamp, binarySubdivision, ternarySubdivision);
+        long next = nextSubbeat(timestamp, binarySubdivision, ternarySubdivision);
         if ((timestamp - prev) <= (next - timestamp)) {
             return prev;
         } else {
@@ -216,7 +283,7 @@ public class Beat implements Cloneable {
      * @return The snapped onset
      */
     public Onset snap(Onset onset) {
-        return snap(onset, 1);
+        return snap(onset, 0, 0);
     }
 
     /**
@@ -228,20 +295,46 @@ public class Beat implements Cloneable {
      *
      * @param onset
      *            Onset to snap
-     * @param subdivision
-     *            Number of beat subdivisons allowed (0 = full beat, 1 = half
-     *            beat, 2 = quarter beat, etc.)
+     * @param binarySubdivision
+     *            Level of binary beat subdivisons allowed (0 for no
+     *            subdivision, 1 for 2 subdivisions, 2 for 4, etc.)
      * @return The snapped onset
      */
-    public Onset snap(Onset onset, int subdivision) {
-        if (subdivision < 0) {
-            throw new IllegalArgumentException("The allowed subdivision level cannot be negative");
+    public Onset snap(Onset onset, int binarySubdivision) {
+        if (binarySubdivision < 0) {
+            throw new IllegalArgumentException("The allowed subdivisions level cannot be negative");
         }
-        long begin = closestSubbeat(onset.getTimestamp(), subdivision);
-        long end = closestSubbeat(onset.getTimestamp() + onset.getDuration(), subdivision);
-        int subbeatDuration = Math.round(getDuration() / (float) (1 << subdivision));
+        long begin = closestSubbeat(onset.getTimestamp(), binarySubdivision);
+        long end = closestSubbeat(onset.getTimestamp() + onset.getDuration(), binarySubdivision);
+        int subbeatDuration = Math.round(getDuration() / (float) (binarySubdivision));
         int duration = Math.round((end - begin) / ((float) subbeatDuration)) * subbeatDuration;
         return new Onset(begin, duration, onset.getPitch(), onset.getVelocity());
+    }
+
+    /**
+     * Create a new onset resulting of snapping the given onset to the closest
+     * beat subdivision.
+     *
+     * The resulting onset has a timestamp and duration that matches exactly
+     * some beat subdivisions.
+     *
+     * @param onset
+     *            Onset to snap
+     * @param binarySubdivision
+     *            Level of binary beat subdivisons allowed (0 for no
+     *            subdivision, 1 for 2 subdivisions, 2 for 4, etc.)
+     * @param ternarySubdivision
+     *            Level of ternary beat subdivisons allowed (0 for no
+     *            subdivision, 1 for 3 subdivisions, 2 for 9, etc.)
+     * @return The snapped onset
+     */
+    public Onset snap(Onset onset, int binarySubdivision, int ternarySubdivision) {
+        if (binarySubdivision < 0 || ternarySubdivision < 0) {
+            throw new IllegalArgumentException("The allowed subdivisions level cannot be negative");
+        }
+        long begin = closestSubbeat(onset.getTimestamp(), binarySubdivision, ternarySubdivision);
+        long end = closestSubbeat(onset.getTimestamp() + onset.getDuration(), binarySubdivision, ternarySubdivision);
+        return new Onset(begin, (int) (end - begin), onset.getPitch(), onset.getVelocity());
     }
 
     @Override

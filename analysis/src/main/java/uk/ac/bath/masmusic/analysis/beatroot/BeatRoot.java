@@ -72,10 +72,8 @@ public class BeatRoot {
             return null;
         }
         // Estimate number of trackers
-        double onsetsWindow = onsets.get(onsets.size() - 1).getTimestamp()
-                - onsets.get(0).getTimestamp();
-        int nOnsetsIni = (int) Math.round(
-                onsets.size() / Math.ceil(onsetsWindow / TRACKER_START_WINDOW));
+        double onsetsWindow = onsets.get(onsets.size() - 1).getTimestamp() - onsets.get(0).getTimestamp();
+        int nOnsetsIni = (int) Math.round(onsets.size() / Math.ceil(onsetsWindow / TRACKER_START_WINDOW));
 
         // Create trackers for every onset in the start window
         PriorityQueue<BeatHypothesisTracker> trackers = new PriorityQueue<>(
@@ -191,11 +189,11 @@ public class BeatRoot {
             return true;
         } else if (tracker1 == null ^ tracker2 == null) {
             return false;
-        } else if (Math.abs(tracker1.getBeatDuration() - tracker2
-                .getBeatDuration()) > BEAT_DURATION_SIMILARITY_THRESHOLD) {
+        } else if (Math.abs(tracker1.getBeatDuration() - tracker2.getBeatDuration())
+                > BEAT_DURATION_SIMILARITY_THRESHOLD) {
             return false;
-        } else if (Math.abs(tracker1.getTimestamp()
-                - tracker2.getTimestamp()) > BEAT_PHASE_SIMILARITY_THRESHOLD) {
+        } else if (Math.abs(tracker1.getTimestamp() - tracker2.getTimestamp())
+                > BEAT_PHASE_SIMILARITY_THRESHOLD) {
             return false;
         } else {
             return true;

@@ -58,13 +58,11 @@ class BeatInducer {
         ListIterator<Onset> itRef = onsets.listIterator();
         while (itRef.hasNext()) {
             Onset onsetRef = itRef.next();
-            ListIterator<Onset> itOther = onsets
-                    .listIterator(itRef.nextIndex());
+            ListIterator<Onset> itOther = onsets.listIterator(itRef.nextIndex());
             while (itOther.hasNext()) {
                 Onset onset = itOther.next();
                 // Update clusters if time offset is within range
-                long timeDiff = Math
-                        .abs(onset.getTimestamp() - onsetRef.getTimestamp());
+                long timeDiff = Math.abs(onset.getTimestamp() - onsetRef.getTimestamp());
                 if (timeDiff < MIN_INTERONSET_INTERVAL) {
                     // Too short
                     continue;
@@ -106,20 +104,12 @@ class BeatInducer {
 
         // Sort indices by cluster size
         List<BeatCluster> beatClustersArr = new ArrayList<>(beatClusters);
-        List<Integer> beatClustersBySizeIdx = new ArrayList<>(
-                beatClusters.size());
+        List<Integer> beatClustersBySizeIdx = new ArrayList<>(beatClusters.size());
         for (int i = 0; i < beatClusters.size(); i++) {
             beatClustersBySizeIdx.add(i);
         }
-        Collections.sort(beatClustersBySizeIdx, new Comparator<Integer>() {
-            @Override
-            public int compare(Integer idx1, Integer idx2) {
-                // Bigger sizes first in list
-                int size1 = beatClustersArr.get(idx1).size;
-                int size2 = beatClustersArr.get(idx2).size;
-                return size2 - size1;
-            }
-        });
+        // Bigger sizes first in list
+        Collections.sort(beatClustersBySizeIdx, Comparator.comparingInt(i -> -beatClustersArr.get(i).size));
 
         // Compute induced beat durations
         List<Double> inducedBeat = new ArrayList<>(NUM_BEST_CLUSTERS);
@@ -145,26 +135,22 @@ class BeatInducer {
                 double ratio = best.beatDuration / other.beatDuration;
                 boolean subMult = ratio < 1;
                 int degree = (int) Math.round(subMult ? 1 / ratio : ratio);
-                // Check sub-/super-cluster relationships
+                // Check sub/super-cluster relationships
                 if ((degree >= 2) && (degree <= 8)) {
                     double sumAdd = .0;
                     // int countAdd = 0;
                     int weightAdd = 0;
                     if (subMult) {
-                        double err = Math.abs(other.beatDuration
-                                - best.beatDuration * degree);
+                        double err = Math.abs(other.beatDuration - best.beatDuration * degree);
                         if (err <= CLUSTER_WIDTH) {
-                            sumAdd = clusterScores[iOther] * other.beatDuration
-                                    / degree;
+                            sumAdd = clusterScores[iOther] * other.beatDuration / degree;
                             weightAdd = clusterScores[iOther];
                             // countAdd = other.size;
                         }
                     } else {
-                        double err = Math.abs(best.beatDuration
-                                - other.beatDuration * degree);
+                        double err = Math.abs(best.beatDuration - other.beatDuration * degree);
                         if (err <= CLUSTER_WIDTH * degree) {
-                            sumAdd = clusterScores[iOther] * other.beatDuration
-                                    * degree;
+                            sumAdd = clusterScores[iOther] * other.beatDuration * degree;
                             weightAdd = clusterScores[iOther];
                             // countAdd = other.size;
                         }
@@ -203,8 +189,7 @@ class BeatInducer {
         // Find iterator to cluster
         ListIterator<BeatCluster> it = beatClusters.listIterator();
         BeatCluster currentCluster = it.hasNext() ? it.next() : null;
-        while (currentCluster != null
-                && timeDiff > (currentCluster.beatDuration + CLUSTER_WIDTH)) {
+        while (currentCluster != null && timeDiff > (currentCluster.beatDuration + CLUSTER_WIDTH)) {
             currentCluster = it.hasNext() ? it.next() : null;
         }
         // Deviation from selected cluster
@@ -292,15 +277,13 @@ class BeatInducer {
             // Assign base score
             scores[it1.previousIndex()] += cluster1.size * 10;
             // Iterate the rest of the list
-            ListIterator<BeatCluster> it2 = beatClusters
-                    .listIterator(it1.previousIndex() + 1);
+            ListIterator<BeatCluster> it2 = beatClusters.listIterator(it1.previousIndex() + 1);
             while (it2.hasNext()) {
                 BeatCluster cluster2 = it2.next();
                 double ratio = cluster1.beatDuration / cluster2.beatDuration;
                 int degree = (int) Math.round(1. / ratio);
                 if (degree >= 2 && degree <= 8) {
-                    double err = Math.abs(cluster1.beatDuration * degree
-                            - cluster2.beatDuration);
+                    double err = Math.abs(cluster1.beatDuration * degree - cluster2.beatDuration);
                     if (err <= CLUSTER_WIDTH) {
                         degree = degree >= 5 ? 1 : 6 - degree;
                         scores[it1.previousIndex()] += degree * cluster2.size;
@@ -330,12 +313,10 @@ class BeatInducer {
 
         BeatCluster(double beatDuration, int size) {
             if (beatDuration < .0) {
-                throw new IllegalArgumentException(
-                        "Beat duration must be positive");
+                throw new IllegalArgumentException("Beat duration must be positive");
             }
             if (size < 0) {
-                throw new IllegalArgumentException(
-                        "Cluster size must be positive");
+                throw new IllegalArgumentException("Cluster size must be positive");
             }
             this.beatDuration = beatDuration;
             this.size = size;
@@ -344,9 +325,7 @@ class BeatInducer {
         void merge(BeatCluster cluster) {
             int newSize = this.size + cluster.size;
             if (newSize > 0) {
-                beatDuration = ((beatDuration * size)
-                        + (cluster.beatDuration * cluster.size))
-                        / newSize;
+                beatDuration = ((beatDuration * size) + (cluster.beatDuration * cluster.size)) / newSize;
             } else {
                 beatDuration = (beatDuration + cluster.beatDuration) / 2;
             }
@@ -354,15 +333,13 @@ class BeatInducer {
         }
 
         void update(double beatDuration) {
-            this.beatDuration = ((this.beatDuration * this.size) + beatDuration)
-                    / (this.size + 1);
+            this.beatDuration = ((this.beatDuration * this.size) + beatDuration) / (this.size + 1);
             this.size++;
         }
 
         @Override
         public String toString() {
-            return "BeatCluster [beatDuration=" + beatDuration + ", size="
-                    + size + "]";
+            return "BeatCluster [beatDuration=" + beatDuration + ", size=" + size + "]";
         }
     }
 

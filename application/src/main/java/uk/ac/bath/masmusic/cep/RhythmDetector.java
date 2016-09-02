@@ -125,7 +125,7 @@ public class RhythmDetector extends EsperStatementSubscriber {
         // Check if rhythm input is finished
         long now = System.currentTimeMillis();
         long lastOnsetTime = onsetTimes.get(onsetTimes.size() - 1);
-        if (now - lastOnsetTime < 4 * beatDuration) {
+        if (now - lastOnsetTime < 2 * beatDuration) {
             // May not have finished yet
             return;
         }

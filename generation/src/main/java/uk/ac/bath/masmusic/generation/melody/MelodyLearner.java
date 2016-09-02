@@ -38,6 +38,9 @@ public class MelodyLearner {
     /** Treble/bass splitter. */
     private final TrebleBassSplitter splitter;
 
+    /** Timestamp of the last learned music. */
+    private long lastLearned;
+
     /**
      * Constructor.
      *
@@ -56,6 +59,7 @@ public class MelodyLearner {
         baseIndex = 0;
         rhythm = null;
         splitter = new TrebleBassSplitter();
+        lastLearned = -1;
     }
 
     /**
@@ -72,7 +76,10 @@ public class MelodyLearner {
             int currentBarClass = getBarClass(currentReferenceBeat, this.rhythm);
             long newReferenceBeat = rhythm.getBeat().closestBeat(currentReferenceBeat);
             int newbarClass = getBarClass(newReferenceBeat, rhythm);
-            baseIndex = (baseIndex + (newbarClass - currentBarClass)) % phrases.size();
+            baseIndex = Math.floorMod(baseIndex + (newbarClass - currentBarClass), phrases.size());
+            if (lastLearned > 0) {
+                lastLearned = rhythm.getBeat().closestBeat(lastLearned);
+            }
         }
         this.rhythm = rhythm;
     }
@@ -84,11 +91,20 @@ public class MelodyLearner {
      *            Sequence of played notes
      */
     public void learn(List<Onset> onsets) {
-        if (onsets.isEmpty()) {
+        if (onsets.isEmpty() || rhythm == null) {
             return;
         }
-        // Snap to beat
-        List<Onset> snapOnsets = onsets.stream().map(rhythm.getBeat()::snap).collect(Collectors.toList());
+        // Snap to beat and discard first and last bars
+        long firstBar = rhythm.nextBar(onsets.get(0).getTimestamp());
+        long lastBar = rhythm.currentBar(onsets.get(onsets.size() - 1).getTimestamp());
+        List<Onset> snapOnsets = onsets.stream()
+                .map(o -> rhythm.getBeat().snap(o, 2, 1))
+                .filter(o -> o.getTimestamp() >= lastLearned
+                        && o.getTimestamp() >= firstBar
+                        && o.getTimestamp() < lastBar
+                        && o.getDuration() > 0)
+                .collect(Collectors.toList());
+        lastLearned = lastBar;
 
         // Split
         List<Onset> bass = new ArrayList<>();
@@ -102,7 +118,9 @@ public class MelodyLearner {
             long bar = rhythm.currentBar(onset.getTimestamp());
             if (bar != currentBar) {
                 if (currentPhrase != null) {
-                    phrases.get(getBarClass(currentBar, rhythm)).add(currentPhrase);
+                    int barClass = getBarClass(currentBar, rhythm);
+                    LOG.debug("Learning a bar in class {}", barClass);
+                    phrases.get(barClass).add(currentPhrase);
                 }
                 currentPhrase = new Phrase();
             }
@@ -111,6 +129,11 @@ public class MelodyLearner {
             double duration = (onset.getDuration()) / beatDuration;
             ScoreElement scoreElement = new ScoreElement(duration, Collections.singleton(onset.getPitch()));
             currentPhrase.addElement(scoreElement, position);
+        }
+        if (currentPhrase != null) {
+            int barClass = getBarClass(currentBar, rhythm);
+            LOG.debug("Learning a bar in class {}", barClass);
+            phrases.get(barClass).add(currentPhrase);
         }
     }
 
@@ -143,10 +166,11 @@ public class MelodyLearner {
             int barClass = getBarClass(timestamp, rhythm);
             List<Phrase> barPhrases = phrases.get(barClass);
             if (!barPhrases.isEmpty()) {
-                Phrase phrase = barPhrases.get(random.nextInt(phrases.size()));
+                Phrase phrase = barPhrases.get(random.nextInt(barPhrases.size()));
                 for (Phrase.Element phraseElement : phrase) {
                     long position = Math.round(timestamp + phraseElement.getPosition() * beatDuration);
-                    int duration = Math.toIntExact(Math.round(phraseElement.getScoreElement().getDuration()));
+                    int duration = Math.toIntExact(
+                            Math.round(phraseElement.getScoreElement().getDuration() * beatDuration));
                     for (int pitch : phraseElement.getScoreElement().getPitches()) {
                         notes.add(new Onset(position, duration, pitch, velocity));
                     }
@@ -165,7 +189,7 @@ public class MelodyLearner {
      * @return The bar class corresponding to the given timestamp and rhythm
      */
     private int getBarClass(long timestamp, Rhythm rhythm) {
-        return (int) (((rhythm.currentBar(timestamp) - rhythm.getFirstBarOffset()) % rhythm.getBarDuration()
+        return (int) (((rhythm.currentBar(timestamp) - rhythm.getFirstBarOffset()) / rhythm.getBarDuration()
                 + baseIndex) % phrases.size());
     }
 

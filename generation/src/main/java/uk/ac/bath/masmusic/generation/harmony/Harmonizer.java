@@ -37,6 +37,12 @@ public class Harmonizer {
     /** Logger */
     private static Logger LOG = LoggerFactory.getLogger(Harmonizer.class);
 
+    /** Weight of pitch-chord model in interpolation. */
+    private final double PITCH_CHORD_WEIGHT = 0.25;
+
+    /** Weight of chord bigram model in interpolation. */
+    private final double CHORD_BIGRAM_WEIGHT = 0.9;
+
     /** Number of measures in one harmonization period. */
     private final int harmonizationMeasuresPeriod;
 
@@ -116,7 +122,7 @@ public class Harmonizer {
             int currentDivisionId = getDivisionId(currentReferenceBeat, this.rhythm);
             long newReferenceBeat = rhythm.getBeat().closestBeat(currentReferenceBeat);
             int newDivisionId = getDivisionId(newReferenceBeat, rhythm);
-            baseIndex = (baseIndex + (newDivisionId - currentDivisionId)) % harmonization.size();
+            baseIndex = Math.floorMod(baseIndex + (newDivisionId - currentDivisionId), harmonization.size());
         }
         this.rhythm = rhythm;
     }
@@ -155,7 +161,6 @@ public class Harmonizer {
             for (int iDivision = 0; iDivision < measureDivisions; iDivision++) {
                 int divisionId = getDivisionId(timestamp, rhythm);
                 Chord chord = harmonization.get(divisionId);
-                LOG.debug("divisonId: {}, {}", divisionId, chord);
                 for (int pitch : chord.getPitches(octave)) {
                     harmony.add(new Onset(timestamp, divisionLength, pitch, velocity));
                 }
@@ -192,7 +197,9 @@ public class Harmonizer {
         LOG.debug("Harmonizing {} onsets in {}", onsets.size(), scale);
 
         // Snap onsets
-        List<Onset> snapOnsets = onsets.stream().map(o -> rhythm.getBeat().snap(o, 2)).collect(Collectors.toList());
+        List<Onset> snapOnsets = onsets.stream()
+                .map(o -> rhythm.getBeat().snap(o, 2))
+                .collect(Collectors.toList());
 
         // Collect onsets in the same subdivision
         Map<Integer, List<Onset>> groupedMap = IntStream.range(0, snapOnsets.size()).boxed()
@@ -284,16 +291,18 @@ public class Harmonizer {
         Optional<ChordProbability> bestChord = Stream.concat(
                 // Concatenate estimations
                 IntStream.range(0, pitchModelChords.size())
-                        .mapToObj(i -> new ChordProbability(pitchModelChords.get(i), pitchModelChordsProbs.get(i))),
+                        .mapToObj(i -> new ChordProbability(pitchModelChords.get(i),
+                                PITCH_CHORD_WEIGHT * Math.log(pitchModelChordsProbs.get(i)))),
                 IntStream.range(0, bigramModelChords.size())
-                        .mapToObj(i -> new ChordProbability(bigramModelChords.get(i), bigramModelChordsProbs.get(i))))
+                        .mapToObj(i -> new ChordProbability(bigramModelChords.get(i),
+                                CHORD_BIGRAM_WEIGHT * Math.log(bigramModelChordsProbs.get(i)))))
                 // Group estimations by chord
                 .collect(Collectors.groupingBy(cp -> cp.chord)).entrySet().stream()
                 // Discard elements not present in estimations of both models
                 .filter(e -> e.getValue().size() > 1)
-                // Multiply both probabilities
+                // Interpolate probabilities
                 .map(e -> new ChordProbability(e.getKey(),
-                        e.getValue().stream().mapToDouble(cp -> cp.probability).reduce(1.0, (x, y) -> x * y)))
+                        e.getValue().stream().mapToDouble(cp -> cp.probability).sum()))
                 // Get best
                 .max(Comparator.comparing(cp -> cp.probability));
 
@@ -334,12 +343,12 @@ public class Harmonizer {
         int measureDivisions = getMeasureDivisions(rhythm.getTimeSignature());
         int totalDivisions = measureDivisions * this.harmonizationMeasuresPeriod;
         double divisionLength = rhythm.getBarDuration() / ((double) measureDivisions);
-        return (int) ((Math.round((timestamp - rhythm.getFirstBarOffset() - divisionLength / 2) / (divisionLength))
+        return (int) ((Math.round((timestamp - rhythm.getFirstBarOffset()) / (divisionLength))
                 + baseIndex) % totalDivisions);
     }
 
     private static class ChordProbability {
-        final Chord chord;
+        final Chord  chord;
         final double probability;
 
         ChordProbability(Chord chord, double probability) {

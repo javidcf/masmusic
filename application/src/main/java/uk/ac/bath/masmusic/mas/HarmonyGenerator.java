@@ -36,7 +36,7 @@ import uk.ac.bath.masmusic.generation.harmony.PitchClassChordModelReader;
 @Component
 public class HarmonyGenerator {
 
-    private static final int HARMONIZATION_MEASURES_PERIOD = 8;
+    private static final int HARMONIZATION_MEASURES_PERIOD = 4;
 
     /** Logger */
     private static Logger LOG = LoggerFactory.getLogger(HarmonyGenerator.class);

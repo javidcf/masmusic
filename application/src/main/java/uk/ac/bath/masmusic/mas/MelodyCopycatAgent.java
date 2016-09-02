@@ -9,7 +9,6 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import jason.asSemantics.ActionExec;
-import jason.asSyntax.Literal;
 import jason.asSyntax.Structure;
 import uk.ac.bath.masmusic.common.Beat;
 import uk.ac.bath.masmusic.common.Note;
@@ -20,29 +19,26 @@ import uk.ac.bath.masmusic.common.TimeSignature;
 import uk.ac.bath.masmusic.events.MusicInputBufferUpdatedEvent;
 
 /**
- * An agent that plays harmony inferred from the received melody.
+ * An agent that imitates the received melody.
  *
  * @author Javier Dehesa
  */
 @Component
-public class HarmonizerAgent extends MasMusicAbstractAgent {
+public class MelodyCopycatAgent extends MasMusicAbstractAgent {
 
     /** Logger */
-    private static Logger LOG = LoggerFactory.getLogger(HarmonizerAgent.class);
+    private static Logger LOG = LoggerFactory.getLogger(MelodyCopycatAgent.class);
 
     /** Agent ASL source path. */
-    private static final String ASL_PATH = "/asl/harmonizerAgent.asl";
-
-    /** Literal indicating that an harmonization is available. */
-    private static final Literal HARMONIZATION_AVAILABLE = Literal.parseLiteral("harmonizationAvailable");
+    private static final String ASL_PATH = "/asl/melodyCopycatAgent.asl";
 
     @Autowired
     private MasMusic masMusic;
 
     @Autowired
-    private HarmonyGenerator harmonyGenerator;
+    private MelodyCopycat melodyCopycat;
 
-    public HarmonizerAgent() {
+    public MelodyCopycatAgent() {
         initAgent(ASL_PATH);
     }
 
@@ -54,7 +50,7 @@ public class HarmonizerAgent extends MasMusicAbstractAgent {
             long timestamp = System.currentTimeMillis();
             playNote(pitch, DEFAULT_VELOCITY, timestamp, DEFAULT_DURATION);
             return true;
-        } else if (actionTerm.getFunctor().equalsIgnoreCase("harmonize")) {
+        } else if (actionTerm.getFunctor().equalsIgnoreCase("imitate")) {
             // Read parameters
             long start = Long.parseLong(actionTerm.getTerm(0).toString());
             int bars = Integer.parseInt(actionTerm.getTerm(1).toString());
@@ -70,8 +66,8 @@ public class HarmonizerAgent extends MasMusicAbstractAgent {
             Rhythm rhythm = new Rhythm(beat, timeSignature, barBeatOffset);
             Scale scale = new Scale(Note.fromValue(fundamental), scaleName);
 
-            // Generate harmony and play it
-            List<Onset> harmony = harmonyGenerator.getHarmony(scale, rhythm, start, bars);
+            // Generate melody and play it
+            List<Onset> harmony = melodyCopycat.getRandomBars(scale, rhythm, start, bars);
             for (Onset onset : harmony) {
                 masMusic.play(onset.getPitch(), onset.getVelocity(), onset.getTimestamp(), onset.getDuration());
             }
@@ -79,15 +75,6 @@ public class HarmonizerAgent extends MasMusicAbstractAgent {
         } else {
             return false;
         }
-    }
-
-    @Override
-    public List<Literal> perceive() {
-        List<Literal> percepts = super.perceive();
-        if (harmonyGenerator.hasHarmonization()) {
-            percepts.add(HARMONIZATION_AVAILABLE);
-        }
-        return percepts;
     }
 
     /**
@@ -101,7 +88,7 @@ public class HarmonizerAgent extends MasMusicAbstractAgent {
         Scale scale = masMusic.getScale();
         Rhythm rhythm = masMusic.getRhythm();
         if (scale != null && rhythm != null) {
-            harmonyGenerator.harmonize(scale, rhythm, event.getInputBuffer());
+            melodyCopycat.learn(scale, rhythm, event.getInputBuffer());
         }
     }
 

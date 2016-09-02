@@ -52,4 +52,40 @@ public class ScoreElement {
         return "ScoreElement [duration=" + duration + ", pitches=" + pitches + "]";
     }
 
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        long temp;
+        temp = Double.doubleToLongBits(duration);
+        result = prime * result + (int) (temp ^ (temp >>> 32));
+        result = prime * result + ((pitches == null) ? 0 : pitches.hashCode());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        ScoreElement other = (ScoreElement) obj;
+        if (Double.doubleToLongBits(duration) != Double.doubleToLongBits(other.duration)) {
+            return false;
+        }
+        if (pitches == null) {
+            if (other.pitches != null) {
+                return false;
+            }
+        } else if (!pitches.equals(other.pitches)) {
+            return false;
+        }
+        return true;
+    }
+
 }

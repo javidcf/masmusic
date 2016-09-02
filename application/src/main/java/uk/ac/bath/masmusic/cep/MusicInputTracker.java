@@ -26,10 +26,10 @@ import uk.ac.bath.masmusic.protobuf.TimeSpanNote;
 public class MusicInputTracker extends EsperStatementSubscriber {
 
     /** Window size for beat analysis (ms) */
-    private static final int ANALYSIS_WINDOW = 30000;
+    private static final int ANALYSIS_WINDOW = 20000;
 
     /** Frequency of beat analysis (ms) */
-    private static final int ANALYSIS_FREQUENCY = 5000;
+    private static final int ANALYSIS_FREQUENCY = 1000;
 
     /** Logger */
     private static Logger LOG = LoggerFactory.getLogger(MusicInputTracker.class);

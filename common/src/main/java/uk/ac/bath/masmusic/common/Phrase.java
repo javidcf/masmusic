@@ -23,7 +23,7 @@ public class Phrase implements Iterable<Phrase.Element> {
      */
     public static class Element {
         /** Position of the element in the phrase in beats. */
-        private final double position;
+        private final double       position;
         /** Score element. */
         private final ScoreElement scoreElement;
 
@@ -57,6 +57,42 @@ public class Phrase implements Iterable<Phrase.Element> {
         @Override
         public String toString() {
             return String.format("%.2f: %s", position, scoreElement.toString());
+        }
+
+        @Override
+        public int hashCode() {
+            final int prime = 31;
+            int result = 1;
+            long temp;
+            temp = Double.doubleToLongBits(position);
+            result = prime * result + (int) (temp ^ (temp >>> 32));
+            result = prime * result + ((scoreElement == null) ? 0 : scoreElement.hashCode());
+            return result;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            Element other = (Element) obj;
+            if (Double.doubleToLongBits(position) != Double.doubleToLongBits(other.position)) {
+                return false;
+            }
+            if (scoreElement == null) {
+                if (other.scoreElement != null) {
+                    return false;
+                }
+            } else if (!scoreElement.equals(other.scoreElement)) {
+                return false;
+            }
+            return true;
         }
     }
 
@@ -136,6 +172,36 @@ public class Phrase implements Iterable<Phrase.Element> {
     @Override
     public String toString() {
         return "Phrase " + elements;
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((elements == null) ? 0 : elements.hashCode());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        Phrase other = (Phrase) obj;
+        if (elements == null) {
+            if (other.elements != null) {
+                return false;
+            }
+        } else if (!elements.equals(other.elements)) {
+            return false;
+        }
+        return true;
     }
 
 }

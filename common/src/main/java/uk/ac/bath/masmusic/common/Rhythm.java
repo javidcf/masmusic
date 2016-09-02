@@ -208,7 +208,7 @@ public class Rhythm {
      * @return The timestamp of the first bar after timestamp 0
      */
     public int getFirstBarOffset() {
-        return beatOffset * beat.getDuration() * beat.getPhase();
+        return beatOffset * beat.getDuration() + beat.getPhase();
     }
 
 }
