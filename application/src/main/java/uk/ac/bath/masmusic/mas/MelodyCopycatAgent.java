@@ -6,7 +6,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
-import org.springframework.stereotype.Component;
 
 import jason.asSemantics.ActionExec;
 import jason.asSyntax.Structure;
@@ -23,11 +22,14 @@ import uk.ac.bath.masmusic.events.MusicInputBufferUpdatedEvent;
  *
  * @author Javier Dehesa
  */
-@Component
+//@Component
 public class MelodyCopycatAgent extends MasMusicAbstractAgent {
 
     /** Logger */
     private static Logger LOG = LoggerFactory.getLogger(MelodyCopycatAgent.class);
+
+    /** Instrument. */
+    private static final int INSTRUMENT = 110;
 
     /** Agent ASL source path. */
     private static final String ASL_PATH = "/asl/melodyCopycatAgent.asl";
@@ -48,7 +50,7 @@ public class MelodyCopycatAgent extends MasMusicAbstractAgent {
         if (actionTerm.getFunctor().equalsIgnoreCase("play")) {
             int pitch = Integer.parseInt(actionTerm.getTerm(0).toString());
             long timestamp = System.currentTimeMillis();
-            playNote(pitch, DEFAULT_VELOCITY, timestamp, DEFAULT_DURATION);
+            playNote(pitch, DEFAULT_VELOCITY, timestamp, DEFAULT_DURATION, INSTRUMENT);
             return true;
         } else if (actionTerm.getFunctor().equalsIgnoreCase("imitate")) {
             // Read parameters
@@ -69,7 +71,7 @@ public class MelodyCopycatAgent extends MasMusicAbstractAgent {
             // Generate melody and play it
             List<Onset> harmony = melodyCopycat.getRandomBars(scale, rhythm, start, bars);
             for (Onset onset : harmony) {
-                masMusic.play(onset.getPitch(), onset.getVelocity(), onset.getTimestamp(), onset.getDuration());
+                playNote(onset.getPitch(), onset.getVelocity(), onset.getTimestamp(), onset.getDuration(), INSTRUMENT);
             }
             return true;
         } else {

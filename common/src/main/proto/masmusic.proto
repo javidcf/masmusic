@@ -42,6 +42,7 @@ message TimePointNote
     optional int64 timestamp = 1;  // Timestamp since epoch in milliseconds
     optional Pitch pitch = 2;
     optional uint32 velocity = 3;  // Velocity value, should be in the range 0-127
+    optional uint32 instrument = 5;  // Note instrument, should be in the range 0-127
 }
 
 // A note played on a span of time
@@ -51,4 +52,5 @@ message TimeSpanNote
     optional Pitch pitch = 2;
     optional uint32 velocity = 3;  // Velocity value, should be in the range 0-127
     optional uint32 duration = 4;  // Note duration
+    optional uint32 instrument = 5;  // Note instrument, should be in the range 0-127
 }

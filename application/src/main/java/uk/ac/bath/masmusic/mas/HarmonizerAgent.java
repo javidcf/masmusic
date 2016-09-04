@@ -30,6 +30,9 @@ public class HarmonizerAgent extends MasMusicAbstractAgent {
     /** Logger */
     private static Logger LOG = LoggerFactory.getLogger(HarmonizerAgent.class);
 
+    /** Instrument. */
+    private static final int INSTRUMENT = 70;
+
     /** Agent ASL source path. */
     private static final String ASL_PATH = "/asl/harmonizerAgent.asl";
 
@@ -52,7 +55,7 @@ public class HarmonizerAgent extends MasMusicAbstractAgent {
         if (actionTerm.getFunctor().equalsIgnoreCase("play")) {
             int pitch = Integer.parseInt(actionTerm.getTerm(0).toString());
             long timestamp = System.currentTimeMillis();
-            playNote(pitch, DEFAULT_VELOCITY, timestamp, DEFAULT_DURATION);
+            playNote(pitch, DEFAULT_VELOCITY, timestamp, DEFAULT_DURATION, INSTRUMENT);
             return true;
         } else if (actionTerm.getFunctor().equalsIgnoreCase("harmonize")) {
             // Read parameters
@@ -73,7 +76,7 @@ public class HarmonizerAgent extends MasMusicAbstractAgent {
             // Generate harmony and play it
             List<Onset> harmony = harmonyGenerator.getHarmony(scale, rhythm, start, bars);
             for (Onset onset : harmony) {
-                masMusic.play(onset.getPitch(), onset.getVelocity(), onset.getTimestamp(), onset.getDuration());
+                playNote(onset.getPitch(), onset.getVelocity(), onset.getTimestamp(), onset.getDuration(), INSTRUMENT);
             }
             return true;
         } else {

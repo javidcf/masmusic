@@ -174,8 +174,14 @@ public class MasMusic implements MessageHandler, Runnable {
      *            Start time of the played note
      * @param duration
      *            Duration of the played note
+     * @param instrument
+     *            Instrument used to played the note (should be in the range
+     *            0-127)
      */
-    protected void play(int pitch, int velocity, long timestamp, int duration) {
+    protected void play(int pitch, int velocity, long timestamp, int duration, int instrument) {
+        if (instrument < 0 || instrument > 127) {
+            throw new IllegalArgumentException("Invalid instrument value");
+        }
         Note baseNote = Note.valueOf(pitch % 12);
         int octave = (pitch / 12) - 1;
         TimeSpanNote timeSpanNote = timeSpanNoteBuilder
@@ -185,6 +191,7 @@ public class MasMusic implements MessageHandler, Runnable {
                 .setVelocity(velocity)
                 .setTimestamp(timestamp)
                 .setDuration(duration)
+                .setInstrument(instrument)
                 .build();
         musicPlayer.play(timeSpanNote);
     }

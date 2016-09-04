@@ -242,10 +242,12 @@ public abstract class MasMusicAbstractAgent extends AgArch {
      *            Start time of the played note
      * @param duration
      *            Duration of the played note
+     * @param instrument
+     *            Instrument used to play the note
      */
     protected void playNote(int pitch, int velocity, long timestamp,
-            int duration) {
-        masMusic.play(pitch, velocity, timestamp, duration);
+            int duration, int instrument) {
+        masMusic.play(pitch, velocity, timestamp, duration, instrument);
     }
 
 }

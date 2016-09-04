@@ -3,6 +3,7 @@ package uk.ac.bath.masmusic.mas;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import jason.asSemantics.ActionExec;
 import jason.asSyntax.Structure;
@@ -19,17 +20,17 @@ import uk.ac.bath.masmusic.common.TimeSignature;
  *
  * @author Javier Dehesa
  */
-//@Component
+@Component
 public class MelodyGeneratorAgent extends MasMusicAbstractAgent {
 
     /** Logger */
     private static Logger LOG = LoggerFactory.getLogger(MelodyGeneratorAgent.class);
 
+    /** Instrument. */
+    private static final int INSTRUMENT = 24;
+
     /** Agent ASL source path. */
     private static final String ASL_PATH = "/asl/melodyGeneratorAgent.asl";
-
-    @Autowired
-    private MasMusic masMusic;
 
     @Autowired
     private MelodyGenerator melodyGenerator;
@@ -44,7 +45,7 @@ public class MelodyGeneratorAgent extends MasMusicAbstractAgent {
         if (actionTerm.getFunctor().equalsIgnoreCase("play")) {
             int pitch = Integer.parseInt(actionTerm.getTerm(0).toString());
             long timestamp = System.currentTimeMillis();
-            playNote(pitch, DEFAULT_VELOCITY, timestamp, DEFAULT_DURATION);
+            playNote(pitch, DEFAULT_VELOCITY, timestamp, DEFAULT_DURATION, INSTRUMENT);
             return true;
         } else if (actionTerm.getFunctor().equalsIgnoreCase("compose")) {
             // Read parameters
@@ -77,7 +78,7 @@ public class MelodyGeneratorAgent extends MasMusicAbstractAgent {
                     elementStart = elementStartSnap;
                 }
                 for (int pitch : scoreElement.getPitches()) {
-                    masMusic.play(pitch, MasMusic.DEFAULT_VELOCITY, elementStart, elementDuration);
+                    playNote(pitch, MasMusic.DEFAULT_VELOCITY, elementStart, elementDuration, INSTRUMENT);
                 }
             }
             return true;

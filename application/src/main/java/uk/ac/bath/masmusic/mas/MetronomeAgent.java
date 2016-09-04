@@ -21,6 +21,9 @@ public class MetronomeAgent extends MasMusicAbstractAgent {
     /** Logger */
     private static Logger LOG = LoggerFactory.getLogger(MetronomeAgent.class);
 
+    /** Instrument. */
+    private static final int INSTRUMENT = 9;
+
     /** Agent ASL source path. */
     private static final String ASL_PATH = "/asl/metronomeAgent.asl";
 
@@ -59,7 +62,8 @@ public class MetronomeAgent extends MasMusicAbstractAgent {
         long currentBeat = beat.nextBeat(start);
         for (int iBar = 0; iBar < beats; iBar++) {
             int beatPosition = rhythm.beatPosition(currentBeat);
-            playNote(beatPosition == 0 ? FIRST_PITCH : NEXT_PITCH, DEFAULT_VELOCITY, currentBeat, beatDuration);
+            playNote(beatPosition == 0 ? FIRST_PITCH : NEXT_PITCH, DEFAULT_VELOCITY,
+                    currentBeat, beatDuration, INSTRUMENT);
             currentBeat = beat.nextBeat(currentBeat);
         }
     }
