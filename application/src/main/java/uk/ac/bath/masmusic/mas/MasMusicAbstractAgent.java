@@ -249,5 +249,4 @@ public abstract class MasMusicAbstractAgent extends AgArch {
             int duration, int instrument) {
         masMusic.play(pitch, velocity, timestamp, duration, instrument);
     }
-
 }

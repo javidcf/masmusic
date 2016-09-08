@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Component;
 
 import jason.asSemantics.ActionExec;
 import jason.asSyntax.Structure;
@@ -30,6 +31,9 @@ public class MelodyCopycatAgent extends MasMusicAbstractAgent {
 
     /** Instrument. */
     private static final int INSTRUMENT = 110;
+
+    /** Velocity. */
+    private static final int VELOCITY = 70;
 
     /** Agent ASL source path. */
     private static final String ASL_PATH = "/asl/melodyCopycatAgent.asl";
@@ -71,7 +75,7 @@ public class MelodyCopycatAgent extends MasMusicAbstractAgent {
             // Generate melody and play it
             List<Onset> harmony = melodyCopycat.getRandomBars(scale, rhythm, start, bars);
             for (Onset onset : harmony) {
-                playNote(onset.getPitch(), onset.getVelocity(), onset.getTimestamp(), onset.getDuration(), INSTRUMENT);
+                playNote(onset.getPitch(), VELOCITY, onset.getTimestamp(), onset.getDuration(), INSTRUMENT);
             }
             return true;
         } else {

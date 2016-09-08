@@ -119,8 +119,11 @@ public class MelodyLearner {
             if (bar != currentBar) {
                 if (currentPhrase != null) {
                     int barClass = getBarClass(currentBar, rhythm);
-                    LOG.debug("Learning a bar in class {}", barClass);
-                    phrases.get(barClass).add(currentPhrase);
+                    // Check phrase has a significant amount of melody
+                    if (currentPhrase.getDuration() >= .5 * rhythm.getTimeSignature().getBeats()) {
+                        LOG.debug("Learning a bar in class {}", barClass);
+                        phrases.get(barClass).add(currentPhrase);
+                    }
                 }
                 currentPhrase = new Phrase();
             }

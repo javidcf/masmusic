@@ -33,6 +33,9 @@ public class HarmonizerAgent extends MasMusicAbstractAgent {
     /** Instrument. */
     private static final int INSTRUMENT = 70;
 
+    /** Velocity. */
+    private static final int VELOCITY = 40;
+
     /** Agent ASL source path. */
     private static final String ASL_PATH = "/asl/harmonizerAgent.asl";
 
@@ -76,7 +79,7 @@ public class HarmonizerAgent extends MasMusicAbstractAgent {
             // Generate harmony and play it
             List<Onset> harmony = harmonyGenerator.getHarmony(scale, rhythm, start, bars);
             for (Onset onset : harmony) {
-                playNote(onset.getPitch(), onset.getVelocity(), onset.getTimestamp(), onset.getDuration(), INSTRUMENT);
+                playNote(onset.getPitch(), VELOCITY, onset.getTimestamp(), onset.getDuration(), INSTRUMENT);
             }
             return true;
         } else {

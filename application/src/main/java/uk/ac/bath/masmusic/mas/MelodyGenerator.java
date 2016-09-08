@@ -40,7 +40,7 @@ public class MelodyGenerator {
     private static final String DURATION_TABLE_RESOURCE_FORMAT = "classpath:generation/%s.dur";
 
     /** Low bound for pitch values. */
-    private final static int PITCH_BOUND_LOW = 36;
+    private final static int PITCH_BOUND_LOW = 48;
 
     /** High bound for pitch values. */
     private final static int PITCH_BOUND_HIGH = 84;

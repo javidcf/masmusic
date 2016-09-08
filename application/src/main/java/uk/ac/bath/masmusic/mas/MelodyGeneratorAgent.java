@@ -29,6 +29,9 @@ public class MelodyGeneratorAgent extends MasMusicAbstractAgent {
     /** Instrument. */
     private static final int INSTRUMENT = 24;
 
+    /** Velocity. */
+    private static final int VELOCITY = 70;
+
     /** Agent ASL source path. */
     private static final String ASL_PATH = "/asl/melodyGeneratorAgent.asl";
 
@@ -78,7 +81,7 @@ public class MelodyGeneratorAgent extends MasMusicAbstractAgent {
                     elementStart = elementStartSnap;
                 }
                 for (int pitch : scoreElement.getPitches()) {
-                    playNote(pitch, MasMusic.DEFAULT_VELOCITY, elementStart, elementDuration, INSTRUMENT);
+                    playNote(pitch, VELOCITY, elementStart, elementDuration, INSTRUMENT);
                 }
             }
             return true;
