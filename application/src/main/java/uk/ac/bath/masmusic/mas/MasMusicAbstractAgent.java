@@ -1,8 +1,5 @@
 package uk.ac.bath.masmusic.mas;
 
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -23,6 +20,7 @@ import jason.asSemantics.Agent;
 import jason.asSemantics.Circumstance;
 import jason.asSemantics.TransitionSystem;
 import jason.asSyntax.Literal;
+import jason.asSyntax.directives.Include;
 import jason.runtime.Settings;
 import uk.ac.bath.masmusic.common.Rhythm;
 import uk.ac.bath.masmusic.common.Scale;
@@ -94,15 +92,11 @@ public abstract class MasMusicAbstractAgent extends AgArch {
      *            ASL source resource path
      */
     protected void initAgent(String aslPath) {
-        URL resource = MasMusicAbstractAgent.class.getResource(aslPath);
-        String agentSourcePath = "";
+        String agentSourcePath = Include.CRPrefix + aslPath;
         try {
-            agentSourcePath = Paths.get(resource.toURI()).toString();
             Agent ag = new Agent();
             new TransitionSystem(ag, new Circumstance(), new Settings(), this);
             ag.initAg(agentSourcePath);
-        } catch (URISyntaxException e) {
-            e.printStackTrace();
         } catch (JasonException e) {
             e.printStackTrace();
         }
